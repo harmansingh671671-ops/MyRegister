@@ -12,18 +12,7 @@ export function renderPath(container) {
   const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
   const badgeEmoji = rankObj ? rankObj.badge : "🍃";
 
-  // Calculate if the weekly honesty reminder banner should be shown
-  const lastShownStr = profile.lastHonestyReminderDate || '';
-  let showHonestyReminder = false;
-  if (!lastShownStr) {
-    showHonestyReminder = true;
-  } else {
-    const lastShown = new Date(lastShownStr);
-    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
-    if (new Date() - lastShown > oneWeekMs) {
-      showHonestyReminder = true;
-    }
-  }
+
   const todayStr = today.toISOString().split('T')[0];
   const tomVal = new Date(); tomVal.setDate(today.getDate() + 1);
   const tomorrowStr = tomVal.toISOString().split('T')[0];
@@ -121,15 +110,7 @@ export function renderPath(container) {
       </button>
     </div>
 
-    ${showHonestyReminder ? `
-      <!-- Weekly Honesty Reminder Banner -->
-      <div id="path-honesty-banner-container" style="padding: 16px 16px 0 16px;">
-        <div class="integrity-banner card-3d" style="background: rgba(255, 150, 0, 0.08); border: 2px solid var(--duo-orange); border-bottom-width: 4px; padding: 12px 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-          <span style="font-size: 12px; font-weight: 600; line-height: 1.4; color: white;">🧠 <strong>Weekly Reminder:</strong> Log your tasks honestly. Absolute integrity beats a faked 100% compliance rate.</span>
-          <button id="close-honesty-banner-btn" style="background: none; border: none; color: var(--text-secondary); font-size: 18px; font-weight: bold; cursor: pointer; line-height: 1;">&times;</button>
-        </div>
-      </div>
-    ` : ''}
+
 
     <!-- Mascot Coach Row -->
     <div id="path-mascot-container" style="padding: 16px 16px 0 16px;"></div>
@@ -338,17 +319,7 @@ export function renderPath(container) {
     renderMascotWidget(mascotBox, mood);
   }
 
-  // Bind honesty close button
-  const closeHonestyBtn = container.querySelector('#close-honesty-banner-btn');
-  if (closeHonestyBtn) {
-    closeHonestyBtn.onclick = () => {
-      const banner = container.querySelector('#path-honesty-banner-container');
-      if (banner) banner.remove();
-      const p = getProfile();
-      p.lastHonestyReminderDate = new Date().toISOString();
-      saveProfile(p);
-    };
-  }
+
 
   // --- STICKY UNIT HEADER SCROLL LISTENER ---
   const viewport = document.querySelector('.view-viewport');
