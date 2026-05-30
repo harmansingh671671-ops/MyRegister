@@ -185,27 +185,97 @@ export function removeCustomReason(reason) {
   }
 }
 
+function mapSlotsToBlocks(slots) {
+  try {
+    if (!Array.isArray(slots)) return [];
+    const blocks = [];
+    slots.forEach((slot, index) => {
+      if (index === 0) return; // skip satisfaction
+      if (slot && typeof slot.text === 'string' && slot.text.trim() !== "") {
+        const parts = slot.time.split('-');
+        if (parts.length === 2) {
+          const startStr = parts[0];
+          const endStr = parts[1];
+          const start = `${startStr.substring(0, 2)}:${startStr.substring(2)}`;
+          const end = `${endStr.substring(0, 2)}:${endStr.substring(2)}`;
+          blocks.push({
+            id: `slot-${index}`,
+            startTime: start,
+            endTime: end,
+            title: slot.text.trim(),
+            category: "Work",
+            difficulty: "easy",
+            status: slot.status || "pending",
+            loggedAt: slot.loggedAt || new Date().toISOString()
+          });
+        }
+      }
+    });
+    return blocks;
+  } catch (e) {
+    console.error('Error mapping slots to blocks:', e);
+    return [];
+  }
+}
+
 export function getDay(dateStr) {
   initStorage();
   try {
     // Validate date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       console.warn('Invalid date format:', dateStr);
-      return { date: dateStr, blocks: [], isCommitted: false, isReviewed: false };
+      return { date: dateStr, blocks: [], slots: [], isCommitted: false, isReviewed: false };
     }
     
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
-    return logs[dateStr] || {
+    const log = logs[dateStr] || {
       date: dateStr,
       blocks: [],
       isCommitted: false,
       isReviewed: false
     };
+
+    // Initialize slots if missing
+    if (!log.slots || log.slots.length !== 25) {
+      log.slots = [
+        { time: "0000-2400", text: "Satisfaction", status: "none" }
+      ];
+      for (let h = 0; h < 24; h++) {
+        const start = String(h).padStart(2, '0') + "00";
+        const end = String(h + 1).padStart(2, '0') + "00";
+        log.slots.push({
+          time: `${start}-${end}`,
+          text: "",
+          status: "pending"
+        });
+      }
+      
+      // Migrate existing blocks if any (for backward compatibility)
+      if (Array.isArray(log.blocks) && log.blocks.length > 0) {
+        log.blocks.forEach(b => {
+          if (b && typeof b.startTime === 'string') {
+            const parts = b.startTime.split(':');
+            if (parts.length >= 1) {
+              const sh = parseInt(parts[0]);
+              const slotIdx = sh + 1;
+              if (slotIdx >= 1 && slotIdx <= 24) {
+                log.slots[slotIdx].text = b.title || "";
+                log.slots[slotIdx].status = b.status || "pending";
+                log.slots[slotIdx].loggedAt = b.loggedAt || new Date().toISOString();
+              }
+            }
+          }
+        });
+      }
+    }
+
+    return log;
   } catch (e) {
     console.error('Error reading day:', e);
     return {
       date: dateStr,
       blocks: [],
+      slots: [],
       isCommitted: false,
       isReviewed: false
     };
@@ -220,6 +290,14 @@ export function saveDay(dateStr, dayLog) {
       return;
     }
     
+    // Map slots to blocks for compatibility
+    dayLog.blocks = mapSlotsToBlocks(dayLog.slots);
+    
+    // Automatically set isCommitted if there is any scheduled hourly text
+    if (Array.isArray(dayLog.slots)) {
+      dayLog.isCommitted = dayLog.slots.slice(1).some(s => s && typeof s.text === 'string' && s.text.trim() !== "");
+    }
+
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
     logs[dateStr] = dayLog;
     localStorage.setItem(DAY_LOGS_KEY, JSON.stringify(logs));

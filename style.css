@@ -2229,6 +2229,156 @@ canvas {
   margin-bottom: 15px;
 }
 
+/* --- TABULAR DAY SCHEDULE MODAL --- */
+.schedule-table-container {
+  margin: 10px 0;
+  width: 100%;
+}
+
+.schedule-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: var(--bg-surface);
+  border-radius: 20px;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+  box-shadow: 0 4px 0 var(--border-color);
+}
+
+.schedule-table tr {
+  border-bottom: 2px solid var(--border-color);
+}
+
+.schedule-table tr:last-child {
+  border-bottom: none;
+}
+
+.schedule-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+.col-time {
+  width: 90px;
+  font-family: var(--font-header);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-secondary);
+  border-right: 2px solid var(--border-color);
+}
+
+.col-schedule {
+  padding-left: 12px;
+}
+
+.col-status {
+  width: 70px;
+  text-align: right;
+  padding-left: 0 !important;
+}
+
+.slot-txt-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: white;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 0;
+  outline: none;
+}
+
+.slot-txt-input:focus {
+  color: var(--duo-blue);
+}
+
+.slot-txt-input:disabled {
+  color: var(--text-hint);
+  cursor: not-allowed;
+}
+
+/* Satisfaction Row Styling */
+.satisfaction-row {
+  background-color: rgba(28, 176, 246, 0.05);
+}
+
+.satisfaction-row .col-time {
+  color: var(--duo-blue);
+}
+
+.satisfaction-row .slot-txt-input {
+  font-weight: 600;
+}
+
+/* Status Button Groups */
+.status-btn-group {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.status-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background-color: var(--bg-dark);
+  font-family: var(--font-body);
+  font-weight: bold;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 0 var(--border-color);
+}
+
+.status-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+
+.status-btn.btn-tick.active {
+  background-color: var(--duo-green);
+  color: white;
+  border-color: var(--duo-green-bottom);
+  box-shadow: 0 2px 0 var(--duo-green-bottom);
+}
+
+.status-btn.btn-cross.active {
+  background-color: var(--duo-red);
+  color: white;
+  border-color: var(--duo-red-bottom);
+  box-shadow: 0 2px 0 var(--duo-red-bottom);
+}
+
+.status-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.status-btn:hover:not(:disabled):not(.active) {
+  border-color: var(--text-secondary);
+}
+
+/* Lock Banner */
+.day-locked-banner {
+  background: rgba(88, 204, 2, 0.1);
+  border: 2px solid var(--duo-green);
+  border-radius: 16px;
+  padding: 12px;
+  font-size: 13px;
+  color: white;
+  text-align: center;
+  font-weight: 600;
+  margin-top: 15px;
+}
+
 
 
 
