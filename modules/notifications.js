@@ -1,28 +1,36 @@
 // Modules/notifications.js
+// Audio synthesis, push notifications, and custom toasts/dialogs
+
 import { getProfile } from './storage.js';
 
 let audioCtx = null;
 
 function getAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  try {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(e => console.warn('Audio context resume failed:', e));
+    }
+    return audioCtx;
+  } catch (e) {
+    console.warn('Audio context unavailable:', e);
+    return null;
   }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
-  return audioCtx;
 }
 
 // Synthesize custom chimes based on user's equipped sound pack
 export function playSuccessSound() {
   try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    
     const profile = getProfile();
     const soundPack = profile.equippedSound || 'default';
-    const ctx = getAudioContext();
     const now = ctx.currentTime;
 
     if (soundPack === 'scifi') {
-      // Sci-Fi beep beeps (high freq rapid pulses)
       const freqs = [900, 1100, 1400];
       freqs.forEach((freq, index) => {
         const osc = ctx.createOscillator();
@@ -38,20 +46,18 @@ export function playSuccessSound() {
         osc.stop(now + index * 0.05 + 0.05);
       });
     } else if (soundPack === 'zen') {
-      // Zen Bell (warm resonant deep bell tone)
       const osc = ctx.createOscillator();
       const gainNode = ctx.createGain();
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(293.66, now); // D4 note
+      osc.frequency.setValueAtTime(293.66, now);
       gainNode.gain.setValueAtTime(0, now);
       gainNode.gain.linearRampToValueAtTime(0.25, now + 0.05);
-      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.2); // long decay
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
       osc.connect(gainNode);
       gainNode.connect(ctx.destination);
       osc.start(now);
       osc.stop(now + 1.2);
     } else if (soundPack === 'retro') {
-      // Retro NES Coin sound (B5 followed by E6)
       const notes = [987.77, 1318.51];
       const durations = [0.08, 0.25];
       notes.forEach((freq, index) => {
@@ -69,7 +75,6 @@ export function playSuccessSound() {
         osc.stop(start + durations[index]);
       });
     } else {
-      // Default Chime (C5 -> E5 -> G5)
       const freqs = [523.25, 659.25, 783.99];
       const duration = 0.08;
       const delay = 0.06;
@@ -94,11 +99,12 @@ export function playSuccessSound() {
 
 export function playPivotSound() {
   try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    
     const profile = getProfile();
     const soundPack = profile.equippedSound || 'default';
-    const ctx = getAudioContext();
     const now = ctx.currentTime;
-
     const osc = ctx.createOscillator();
     const gainNode = ctx.createGain();
 
@@ -110,12 +116,11 @@ export function playPivotSound() {
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
     } else if (soundPack === 'zen') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(180, now); // low pitch
+      osc.frequency.setValueAtTime(180, now);
       osc.frequency.exponentialRampToValueAtTime(140, now + 0.5);
       gainNode.gain.setValueAtTime(0.2, now);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
     } else if (soundPack === 'retro') {
-      // retro explosion chirp
       osc.type = 'square';
       osc.frequency.setValueAtTime(400, now);
       osc.frequency.setValueAtTime(200, now + 0.08);
@@ -123,7 +128,6 @@ export function playPivotSound() {
       gainNode.gain.setValueAtTime(0.1, now);
       gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
     } else {
-      // default pivot (A4 -> E4)
       osc.type = 'sine';
       osc.frequency.setValueAtTime(440, now);
       osc.frequency.exponentialRampToValueAtTime(329.63, now + 0.25);
@@ -136,19 +140,20 @@ export function playPivotSound() {
     osc.start(now);
     osc.stop(now + 0.5);
   } catch (e) {
-    console.warn('Audio play blocked or failed:', e);
+    console.warn('Pivot audio play failed:', e);
   }
 }
 
 export function playUnlockSound() {
   try {
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    
     const profile = getProfile();
     const soundPack = profile.equippedSound || 'default';
-    const ctx = getAudioContext();
     const now = ctx.currentTime;
 
     if (soundPack === 'scifi') {
-      // Sci-fi arpeggio scan
       const notes = [600, 800, 1000, 1300, 1600];
       notes.forEach((freq, index) => {
         const osc = ctx.createOscillator();
@@ -164,8 +169,7 @@ export function playUnlockSound() {
         osc.stop(now + index * 0.05 + 0.2);
       });
     } else if (soundPack === 'zen') {
-      // Double Zen Bell ring
-      const freqs = [329.63, 440.00]; // E4, A4
+      const freqs = [329.63, 440.00];
       freqs.forEach((freq, index) => {
         const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
@@ -181,7 +185,6 @@ export function playUnlockSound() {
         osc.stop(start + 1.5);
       });
     } else if (soundPack === 'retro') {
-      // Retro level clear arpeggio (C5 -> E5 -> G5 -> C6 -> E6 -> G6 rapid)
       const notes = [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98];
       notes.forEach((freq, index) => {
         const osc = ctx.createOscillator();
@@ -198,7 +201,6 @@ export function playUnlockSound() {
         osc.stop(start + 0.2);
       });
     } else {
-      // Default Badge Unlock
       const notes = [440.00, 523.25, 659.25, 880.00];
       notes.forEach((freq, index) => {
         const osc = ctx.createOscillator();
@@ -215,213 +217,222 @@ export function playUnlockSound() {
       });
     }
   } catch (e) {
-    console.warn('Audio unlock play failed:', e);
+    console.warn('Unlock audio play failed:', e);
   }
 }
 
-// Push notifications API manager
 export async function requestNotificationPermission() {
-  if (!('Notification' in window)) return false;
-  if (Notification.permission === 'granted') return true;
-  if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission();
-    return permission === 'granted';
+  try {
+    if (!('Notification' in window)) return false;
+    if (Notification.permission === 'granted') return true;
+    if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      return permission === 'granted';
+    }
+    return false;
+  } catch (e) {
+    console.warn('Notification permission request failed:', e);
+    return false;
   }
-  return false;
 }
 
 export function sendPushNotification(title, body) {
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
-  
   try {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return false;
     new Notification(title, {
       body: body,
-      icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2358cc02" width="48px" height="48px"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>'
+      icon: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%2358cc02"><circle cx="12" cy="12" r="10"/></svg>',
+      badge: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23fff"><circle cx="12" cy="12" r="10"/></svg>'
     });
+    return true;
   } catch (e) {
-    console.error('Notification failed to spawn:', e);
+    console.error('Notification spawn failed:', e);
+    return false;
   }
 }
-
-// --- PREMIUM CUSTOM IN-APP TOASTS AND DIALOGS ---
 
 function ensureDialogElements() {
-  const parent = document.querySelector('.phone-screen-content');
-  if (!parent) return null;
+  try {
+    const parent = document.querySelector('.phone-screen-content');
+    if (!parent) return null;
 
-  // 1. Toast Container
-  let toastContainer = parent.querySelector('.app-toast-container');
-  if (!toastContainer) {
-    toastContainer = document.createElement('div');
-    toastContainer.className = 'app-toast-container';
-    parent.appendChild(toastContainer);
-  }
-
-  // 2. Dialog Overlay
-  let dialogOverlay = parent.querySelector('#app-dialog-overlay');
-  if (!dialogOverlay) {
-    dialogOverlay = document.createElement('div');
-    dialogOverlay.id = 'app-dialog-overlay';
-    dialogOverlay.innerHTML = `
-      <div class="app-dialog-card card-3d">
-        <h4 class="app-dialog-title" id="app-dialog-title-el">Title</h4>
-        <p class="app-dialog-message" id="app-dialog-message-el">Message</p>
-        <input type="text" class="app-dialog-input hidden" id="app-dialog-input-el" placeholder="Enter text...">
-        <div class="app-dialog-buttons" id="app-dialog-buttons-el">
-          <!-- buttons injected -->
-        </div>
-      </div>
-    `;
-    parent.appendChild(dialogOverlay);
-  }
-
-  return { toastContainer, dialogOverlay };
-}
-
-export function showToast(message, type = "info") {
-  const elems = ensureDialogElements();
-  if (!elems) return;
-
-  const toast = document.createElement('div');
-  toast.className = `app-toast toast-${type}`;
-  
-  let icon = "🔔";
-  if (type === "success") icon = "🎉";
-  else if (type === "error") icon = "❌";
-  else if (type === "warning") icon = "⚠️";
-  else if (type === "info") icon = "ℹ️";
-
-  toast.innerHTML = `
-    <span class="app-toast-icon">${icon}</span>
-    <span class="app-toast-message">${message}</span>
-  `;
-
-  elems.toastContainer.appendChild(toast);
-  
-  // Slide in
-  setTimeout(() => toast.classList.add('active'), 50);
-
-  // Slide out and remove
-  setTimeout(() => {
-    toast.classList.remove('active');
-    setTimeout(() => toast.remove(), 300);
-  }, 3200);
-}
-
-export function showConfirm(message, title = "Confirm Action") {
-  return new Promise((resolve) => {
-    const elems = ensureDialogElements();
-    if (!elems) {
-      resolve(false);
-      return;
+    let toastContainer = parent.querySelector('.app-toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.className = 'app-toast-container';
+      parent.appendChild(toastContainer);
     }
 
-    const { dialogOverlay } = elems;
-    const titleEl = dialogOverlay.querySelector('#app-dialog-title-el');
-    const msgEl = dialogOverlay.querySelector('#app-dialog-message-el');
-    const inputEl = dialogOverlay.querySelector('#app-dialog-input-el');
-    const buttonsEl = dialogOverlay.querySelector('#app-dialog-buttons-el');
+    let dialogOverlay = parent.querySelector('#app-dialog-overlay');
+    if (!dialogOverlay) {
+      dialogOverlay = document.createElement('div');
+      dialogOverlay.id = 'app-dialog-overlay';
+      dialogOverlay.innerHTML = `
+        <div class="app-dialog-card card-3d">
+          <h4 class="app-dialog-title" id="app-dialog-title-el">Title</h4>
+          <p class="app-dialog-message" id="app-dialog-message-el">Message</p>
+          <input type="text" class="app-dialog-input hidden" id="app-dialog-input-el" placeholder="Enter text...">
+          <div class="app-dialog-buttons" id="app-dialog-buttons-el"></div>
+        </div>
+      `;
+      parent.appendChild(dialogOverlay);
+    }
 
-    titleEl.textContent = title;
-    msgEl.textContent = message;
-    inputEl.classList.add('hidden');
+    return { toastContainer, dialogOverlay };
+  } catch (e) {
+    console.error('Dialog element creation failed:', e);
+    return null;
+  }
+}
 
-    buttonsEl.innerHTML = `
-      <button class="btn btn-secondary btn-3d btn-full btn-sm" id="confirm-cancel-btn" style="flex:1;">Cancel</button>
-      <button class="btn btn-primary btn-3d btn-full btn-sm" id="confirm-ok-btn" style="flex:1;">OK</button>
+export function showToast(message, type = 'info') {
+  try {
+    if (typeof message !== 'string') return;
+    
+    const elems = ensureDialogElements();
+    if (!elems) return;
+
+    const toast = document.createElement('div');
+    toast.className = `app-toast toast-${type}`;
+    
+    let icon = '🔔';
+    if (type === 'success') icon = '🎉';
+    else if (type === 'error') icon = '❌';
+    else if (type === 'warning') icon = '⚠️';
+
+    toast.innerHTML = `
+      <span class="app-toast-icon">${icon}</span>
+      <span class="app-toast-message">${message.substring(0, 200)}</span>
     `;
 
-    dialogOverlay.classList.add('active');
+    elems.toastContainer.appendChild(toast);
+    setTimeout(() => toast.classList.add('active'), 50);
+    setTimeout(() => {
+      toast.classList.remove('active');
+      setTimeout(() => toast.remove(), 300);
+    }, 3200);
+  } catch (e) {
+    console.error('Toast creation failed:', e);
+  }
+}
 
-    const handleResolve = (val) => {
-      dialogOverlay.classList.remove('active');
-      resolve(val);
-    };
+export function showConfirm(message, title = 'Confirm Action') {
+  return new Promise((resolve) => {
+    try {
+      if (typeof message !== 'string' || typeof title !== 'string') {
+        resolve(false);
+        return;
+      }
+      
+      const elems = ensureDialogElements();
+      if (!elems) {
+        resolve(false);
+        return;
+      }
 
-    dialogOverlay.querySelector('#confirm-cancel-btn').onclick = () => handleResolve(false);
-    dialogOverlay.querySelector('#confirm-ok-btn').onclick = () => handleResolve(true);
+      const { dialogOverlay } = elems;
+      const titleEl = dialogOverlay.querySelector('#app-dialog-title-el');
+      const msgEl = dialogOverlay.querySelector('#app-dialog-message-el');
+      const inputEl = dialogOverlay.querySelector('#app-dialog-input-el');
+      const buttonsEl = dialogOverlay.querySelector('#app-dialog-buttons-el');
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      inputEl.classList.add('hidden');
+
+      buttonsEl.innerHTML = `
+        <button class="btn btn-secondary btn-3d btn-full btn-sm" id="confirm-cancel-btn" style="flex:1;">Cancel</button>
+        <button class="btn btn-primary btn-3d btn-full btn-sm" id="confirm-ok-btn" style="flex:1;">OK</button>
+      `;
+
+      dialogOverlay.classList.add('active');
+
+      const handleResolve = (val) => {
+        dialogOverlay.classList.remove('active');
+        resolve(val);
+      };
+
+      dialogOverlay.querySelector('#confirm-cancel-btn').onclick = () => handleResolve(false);
+      dialogOverlay.querySelector('#confirm-ok-btn').onclick = () => handleResolve(true);
+    } catch (e) {
+      console.error('Confirm dialog error:', e);
+      resolve(false);
+    }
   });
 }
 
-export function showPrompt(message, defaultText = "", title = "Enter Details") {
+export function showPrompt(message, defaultText = '', title = 'Enter Details') {
   return new Promise((resolve) => {
-    const elems = ensureDialogElements();
-    if (!elems) {
-      resolve(null);
-      return;
-    }
-
-    const { dialogOverlay } = elems;
-    const titleEl = dialogOverlay.querySelector('#app-dialog-title-el');
-    const msgEl = dialogOverlay.querySelector('#app-dialog-message-el');
-    const inputEl = dialogOverlay.querySelector('#app-dialog-input-el');
-    const buttonsEl = dialogOverlay.querySelector('#app-dialog-buttons-el');
-
-    titleEl.textContent = title;
-    msgEl.textContent = message;
-    
-    inputEl.value = defaultText;
-    inputEl.classList.remove('hidden');
-    setTimeout(() => inputEl.focus(), 100);
-
-    buttonsEl.innerHTML = `
-      <button class="btn btn-secondary btn-3d btn-full btn-sm" id="prompt-cancel-btn" style="flex:1;">Cancel</button>
-      <button class="btn btn-primary btn-3d btn-full btn-sm" id="prompt-ok-btn" style="flex:1;">Submit</button>
-    `;
-
-    dialogOverlay.classList.add('active');
-
-    const handleResolve = (val) => {
-      dialogOverlay.classList.remove('active');
-      inputEl.classList.add('hidden');
-      resolve(val);
-    };
-
-    dialogOverlay.querySelector('#prompt-cancel-btn').onclick = () => handleResolve(null);
-    dialogOverlay.querySelector('#prompt-ok-btn').onclick = () => handleResolve(inputEl.value);
-    
-    inputEl.onkeydown = (e) => {
-      if (e.key === 'Enter') {
-        handleResolve(inputEl.value);
+    try {
+      if (typeof message !== 'string' || typeof title !== 'string') {
+        resolve(null);
+        return;
       }
-    };
+      
+      const elems = ensureDialogElements();
+      if (!elems) {
+        resolve(null);
+        return;
+      }
+
+      const { dialogOverlay } = elems;
+      const titleEl = dialogOverlay.querySelector('#app-dialog-title-el');
+      const msgEl = dialogOverlay.querySelector('#app-dialog-message-el');
+      const inputEl = dialogOverlay.querySelector('#app-dialog-input-el');
+      const buttonsEl = dialogOverlay.querySelector('#app-dialog-buttons-el');
+
+      titleEl.textContent = title;
+      msgEl.textContent = message;
+      inputEl.value = String(defaultText);
+      inputEl.classList.remove('hidden');
+      
+      setTimeout(() => inputEl.focus(), 100);
+
+      buttonsEl.innerHTML = `
+        <button class="btn btn-secondary btn-3d btn-full btn-sm" id="prompt-cancel-btn" style="flex:1;">Cancel</button>
+        <button class="btn btn-primary btn-3d btn-full btn-sm" id="prompt-ok-btn" style="flex:1;">Submit</button>
+      `;
+
+      dialogOverlay.classList.add('active');
+
+      const handleResolve = (val) => {
+        dialogOverlay.classList.remove('active');
+        inputEl.classList.add('hidden');
+        resolve(val);
+      };
+
+      dialogOverlay.querySelector('#prompt-cancel-btn').onclick = () => handleResolve(null);
+      dialogOverlay.querySelector('#prompt-ok-btn').onclick = () => handleResolve(inputEl.value);
+      inputEl.onkeydown = (e) => {
+        if (e.key === 'Enter') handleResolve(inputEl.value);
+      };
+    } catch (e) {
+      console.error('Prompt dialog error:', e);
+      resolve(null);
+    }
   });
 }
 
 // Global Override of window.alert
 if (typeof window !== 'undefined') {
   window.alert = function(msg) {
-    let type = "info";
-    const lowercaseMsg = msg.toLowerCase();
+    let type = 'info';
+    const lowercaseMsg = String(msg).toLowerCase();
     if (
-      lowercaseMsg.includes("success") || 
-      lowercaseMsg.includes("committed") || 
-      lowercaseMsg.includes("repaired") || 
-      lowercaseMsg.includes("completed") || 
-      lowercaseMsg.includes("contract signed") || 
-      lowercaseMsg.includes("earned") || 
-      lowercaseMsg.includes("active") || 
-      lowercaseMsg.includes("equipped") || 
-      lowercaseMsg.includes("🎉") ||
-      lowercaseMsg.includes("✅")
+      lowercaseMsg.includes('success') || lowercaseMsg.includes('committed') || 
+      lowercaseMsg.includes('completed') || lowercaseMsg.includes('earned') || 
+      lowercaseMsg.includes('🎉') || lowercaseMsg.includes('✅')
     ) {
-      type = "success";
+      type = 'success';
     } else if (
-      lowercaseMsg.includes("warning") || 
-      lowercaseMsg.includes("mark all") || 
-      lowercaseMsg.includes("insufficient") || 
-      lowercaseMsg.includes("limit") || 
-      lowercaseMsg.includes("locked") ||
-      lowercaseMsg.includes("❌") ||
-      lowercaseMsg.includes("⚠️")
+      lowercaseMsg.includes('warning') || lowercaseMsg.includes('insufficient') || 
+      lowercaseMsg.includes('❌') || lowercaseMsg.includes('⚠️')
     ) {
-      type = "warning";
+      type = 'warning';
     } else if (
-      lowercaseMsg.includes("invalid") || 
-      lowercaseMsg.includes("error") || 
-      lowercaseMsg.includes("failed")
+      lowercaseMsg.includes('error') || lowercaseMsg.includes('failed')
     ) {
-      type = "error";
+      type = 'error';
     }
     showToast(msg, type);
   };
