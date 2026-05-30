@@ -5,6 +5,8 @@ import { addXp, triggerEODRecap } from './gamification.js';
 import { calculateMilitaryRank } from './ranks.js';
 import { renderMascotWidget } from './mascot.js';
 
+let isNavigatingWithEnter = false;
+
 export function openDayModal(dateStr) {
   const modal = document.getElementById('day-modal');
   const content = document.getElementById('day-modal-content');
@@ -80,11 +82,11 @@ function renderModalContent(dateStr, container, closeFn) {
       <!-- Satisfaction Row Card -->
       <div class="satisfaction-card card-3d" style="margin-bottom: 20px; padding: 12px 16px; background-color: rgba(28, 176, 246, 0.05); display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 2px solid var(--duo-blue); border-radius: 18px; box-shadow: 0 3px 0 var(--border-color);">
         <div style="font-family: var(--font-header); font-weight: 800; font-size: 11px; color: var(--duo-blue); white-space: nowrap; letter-spacing: 0.5px;">
-          🌟 Satisfaction (0000-2400)
+          🌟 0000-2400
         </div>
         <input type="text" class="slot-txt-input satisfaction-input" 
                data-index="0" 
-               value="${(slots[0].text && slots[0].text !== 'Satisfaction') ? slots[0].text : ''}" 
+               value="${slots[0].text || ''}" 
                placeholder="How satisfied are you with your day?"
                ${dayLog.isReviewed ? 'disabled' : ''}
                style="flex: 1; font-weight: 600; padding: 4px 8px; border-radius: 8px;">
@@ -191,6 +193,8 @@ function renderModalContent(dateStr, container, closeFn) {
   const inputs = container.querySelectorAll('.slot-txt-input');
   inputs.forEach(input => {
     input.addEventListener('change', () => {
+      if (isNavigatingWithEnter) return;
+      
       const idx = parseInt(input.getAttribute('data-index'));
       slots[idx].text = input.value;
       saveDay(dateStr, dayLog);
@@ -205,12 +209,20 @@ function renderModalContent(dateStr, container, closeFn) {
         
         e.preventDefault();
 
-        // Focus next hour row input if it is editable
-        const nextInput = container.querySelector(`.slot-txt-input[data-index="${idx + 1}"]`);
+        const nextIdx = idx + 1;
+        const nextInput = container.querySelector(`.slot-txt-input[data-index="${nextIdx}"]`);
         if (nextInput && !nextInput.disabled) {
-          nextInput.focus();
+          isNavigatingWithEnter = true;
+          renderModalContent(dateStr, container, closeFn);
+          
+          const newNextInput = container.querySelector(`.slot-txt-input[data-index="${nextIdx}"]`);
+          if (newNextInput) {
+            newNextInput.focus();
+          }
+          setTimeout(() => {
+            isNavigatingWithEnter = false;
+          }, 50);
         } else {
-          // Re-render to show updated status buttons and node icons
           renderModalContent(dateStr, container, closeFn);
         }
       }
