@@ -1,0 +1,10 @@
+{
+  "name": "tempo",
+  "version": "1.0.0",
+  "description": "Mindful Accountability Scheduler with Duolingo aesthetics",
+  "main": "app.js",
+  "scripts": {
+    "dev": "npx -y http-server ./ -p 3000 -c-1"
+  },
+  "dependencies": {}
+}

@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tempo - Android Preview</title>
+  <!-- Google Fonts: Outfit (Header) and Inter (Body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  
+  <!-- Android Simulator Shell -->
+  <div class="android-simulator-container">
+    <div class="android-phone-frame">
+      
+      <!-- Simulated Phone Status Bar -->
+      <div class="phone-status-bar">
+        <span class="status-time" id="simulator-time">12:00</span>
+        <div class="status-icons">
+          <span class="icon-signal">📶</span>
+          <span class="icon-battery">🔋 98%</span>
+        </div>
+      </div>
+
+      <!-- App Screen Area -->
+      <div class="phone-screen-content">
+        <div class="app-layout">
+          <!-- Top Mobile Header -->
+          <header class="mobile-header">
+            <div class="mobile-logo">tempo</div>
+            <div class="mobile-stats">
+              <div class="stat-pill text-xp" title="Level">
+                <span>⭐</span>
+                <span class="header-level-val">Lvl 1</span>
+              </div>
+              <div class="stat-pill text-streak" title="Streak">
+                <span>🔥</span>
+                <span class="header-streak-val">0</span>
+              </div>
+              <div class="stat-pill text-diamond" title="Diamonds">
+                <span>💎</span>
+                <span class="header-diamond-val">0</span>
+              </div>
+            </div>
+          </header>
+
+          <!-- Main Viewport viewport -->
+          <div class="view-viewport">
+            <!-- View 0: Onboarding -->
+            <div id="view-onboarding" class="view-container hidden"></div>
+
+            <!-- View 1: Winding Day Path -->
+            <div id="view-path" class="view-container"></div>
+            
+            <!-- View 2: Analytics & Stats -->
+            <div id="view-stats" class="view-container hidden"></div>
+
+            <!-- View 3: Shop -->
+            <div id="view-shop" class="view-container hidden"></div>
+
+            <!-- View 4: Settings -->
+            <div id="view-settings" class="view-container hidden"></div>
+          </div>
+
+          <!-- Bottom Tab Navigation Bar (Duolingo style) -->
+          <nav class="mobile-bottom-nav">
+            <a href="#" class="nav-link active" data-view="path">
+              <div class="nav-icon-container">🏠</div>
+              <span class="nav-text">Path</span>
+            </a>
+            <a href="#" class="nav-link" data-view="stats">
+              <div class="nav-icon-container">📊</div>
+              <span class="nav-text">Stats</span>
+            </a>
+            <a href="#" class="nav-link" data-view="shop">
+              <div class="nav-icon-container">🎁</div>
+              <span class="nav-text">Shop</span>
+            </a>
+            <a href="#" class="nav-link" data-view="settings">
+              <div class="nav-icon-container">⚙️</div>
+              <span class="nav-text">Settings</span>
+            </a>
+          </nav>
+        </div>
+      </div>
+
+      <!-- Simulated Phone Navigation Gesture Bar -->
+      <div class="phone-home-bar">
+        <div class="gesture-line"></div>
+      </div>
+
+      <!-- UNIFIED DAY MODAL (Constrained inside phone frame) -->
+      <div id="day-modal" class="fullscreen-modal hidden">
+        <div class="modal-backdrop" id="day-modal-backdrop"></div>
+        <div class="modal-card day-details-card card-3d animate-pop" id="day-modal-content">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+      <!-- RANKS MODAL (Constrained inside phone frame) -->
+      <div id="ranks-modal" class="fullscreen-modal hidden">
+        <div class="modal-backdrop" id="ranks-modal-backdrop"></div>
+        <div class="modal-card day-details-card card-3d animate-pop" id="ranks-modal-content">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Application script entry point as Module -->
+  <script type="module" src="app.js"></script>
+</body>
+</html>
