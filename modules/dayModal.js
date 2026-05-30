@@ -3,6 +3,7 @@ import { getDay, saveDay, getProfile, saveProfile } from './storage.js';
 import { playSuccessSound, playPivotSound, showConfirm, showToast } from './notifications.js';
 import { addXp, triggerEODRecap } from './gamification.js';
 import { calculateMilitaryRank } from './ranks.js';
+import { renderMascotWidget } from './mascot.js';
 
 export function openDayModal(dateStr) {
   const modal = document.getElementById('day-modal');
@@ -56,7 +57,7 @@ function renderModalContent(dateStr, container, closeFn) {
   // Slots references
   const slots = dayLog.slots;
 
-  // Build the tabular template
+  // Render the structural outer template
   container.innerHTML = `
     <div class="modal-header-row">
       <span class="modal-date-title">📅 ${displayTitle}</span>
@@ -65,95 +66,122 @@ function renderModalContent(dateStr, container, closeFn) {
     
     <div id="modal-body-container" class="modal-body-scroll" style="padding-top: 10px;">
       
-      <!-- Unified Schedule Table -->
-      <div class="schedule-table-container">
-        <table class="schedule-table">
-          <tbody>
-            <!-- Satisfaction top row (colspan=2 across time and schedule inputs) -->
-            <tr class="satisfaction-row">
-              <td class="col-time">0000-2400</td>
-              <td class="col-schedule" colspan="2" style="padding-right: 12px;">
-                <input type="text" class="slot-txt-input satisfaction-input" 
-                       data-index="0" 
-                       value="${slots[0].text || ''}" 
-                       placeholder="Click here to log Satisfaction (e.g. Fully Satisfied, Good flow)">
-              </td>
-            </tr>
-            
-            <!-- 24 Hourly Rows -->
-            ${slots.slice(1).map((slot, i) => {
-              const idx = i + 1;
-              const startHour = i;
-              
-              // Determine past, running, future for Today
-              let hourPast = isPast || (isToday && startHour < currentHour);
-              let hourRunning = isToday && startHour === currentHour;
-              
-              // Editing rules
-              const isEditable = isFuture || (isToday && startHour > currentHour);
-              
-              // Status rules
-              const hasText = slot.text && slot.text.trim() !== "";
-              const isStatusClickable = hasText && hourPast;
+      <!-- Interactive Mascot Coach Header -->
+      <div id="modal-mascot-container" style="margin-bottom: 15px;"></div>
 
-              // Action button classes
-              const tickActive = slot.status === 'completed' ? 'active' : '';
-              const crossActive = slot.status === 'missed' ? 'active' : '';
-
-              return `
-                <tr class="hour-row ${hourRunning ? 'running-hour' : ''}">
-                  <td class="col-time">${slot.time}</td>
-                  <td class="col-schedule">
-                    <input type="text" class="slot-txt-input hourly-schedule-input" 
-                           data-index="${idx}" 
-                           value="${slot.text || ''}" 
-                           placeholder="${isEditable ? 'Type schedule...' : (hasText ? '' : 'No schedule')}"
-                           ${isEditable ? '' : 'disabled'}>
-                  </td>
-                  <td class="col-status">
-                    ${hasText ? `
-                      <div class="status-btn-group">
-                        <button class="status-btn btn-tick ${tickActive}" 
-                                data-index="${idx}" 
-                                data-status="completed" 
-                                ${isStatusClickable ? '' : 'disabled'}
-                                title="${isStatusClickable ? 'Mark Completed' : 'LOCKED (Hour not passed)'}">✓</button>
-                        <button class="status-btn btn-cross ${crossActive}" 
-                                data-index="${idx}" 
-                                data-status="missed" 
-                                ${isStatusClickable ? '' : 'disabled'}
-                                title="${isStatusClickable ? 'Mark Missed' : 'LOCKED (Hour not passed)'}">✗</button>
-                      </div>
-                    ` : ''}
-                  </td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-        </table>
+      <!-- Satisfaction Row Card -->
+      <div class="satisfaction-card card-3d" style="margin-bottom: 20px; padding: 12px 16px; background-color: rgba(28, 176, 246, 0.05); display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 2px solid var(--duo-blue); border-radius: 18px; box-shadow: 0 3px 0 var(--border-color);">
+        <div style="font-family: var(--font-header); font-weight: 800; font-size: 11px; color: var(--duo-blue); white-space: nowrap; letter-spacing: 0.5px;">
+          🌟 Satisfaction (0000-2400)
+        </div>
+        <input type="text" class="slot-txt-input satisfaction-input" 
+               data-index="0" 
+               value="${slots[0].text || ''}" 
+               placeholder="How satisfied are you with your day?"
+               style="flex: 1; font-weight: 600; padding: 4px 8px; border-radius: 8px;">
       </div>
 
-      <!-- Action Panel / Reviewed Banner -->
+      <!-- Vertical Timeline Path Trail -->
+      <div class="timeline-trail-list">
+        ${slots.slice(1).map((slot, i) => {
+          const idx = i + 1;
+          const startHour = i;
+          
+          // Determine past, running, future
+          let hourPast = isPast || (isToday && startHour < currentHour);
+          let hourRunning = isToday && startHour === currentHour;
+          
+          // Editing rules
+          const isEditable = isFuture || (isToday && startHour > currentHour);
+          
+          // Status rules
+          const hasText = slot.text && slot.text.trim() !== "";
+          const isStatusClickable = hasText && hourPast;
+
+          // Active markers
+          const tickActive = slot.status === 'completed' ? 'active' : '';
+          const crossActive = slot.status === 'missed' ? 'active' : '';
+
+          return `
+            <div class="timeline-row ${hourRunning ? 'running-hour' : ''}">
+              <!-- Left Timestamp & Node Connector -->
+              <div class="timeline-left">
+                <span class="time-badge">${slot.time}</span>
+                <div class="timeline-node-container">
+                  <span class="timeline-node-bullet ${slot.status} ${hasText ? 'scheduled' : 'empty'} ${hourRunning ? 'running' : ''}"></span>
+                </div>
+              </div>
+              
+              <!-- Timeline Schedule Card -->
+              <div class="timeline-card ${slot.status}-card">
+                <div class="card-input-wrapper">
+                  <input type="text" class="slot-txt-input hourly-schedule-input" 
+                         data-index="${idx}" 
+                         value="${slot.text || ''}" 
+                         placeholder="${isEditable ? 'Type schedule...' : (hasText ? '' : 'No schedule')}"
+                         ${isEditable ? '' : 'disabled'}>
+                </div>
+                
+                ${hasText ? `
+                  <div class="status-btn-group">
+                    <button class="status-btn btn-tick ${tickActive}" 
+                            data-index="${idx}" 
+                            data-status="completed" 
+                            ${isStatusClickable ? '' : 'disabled'}
+                            title="${isStatusClickable ? 'Mark Completed' : 'LOCKED (Hour not passed)'}">✓</button>
+                    <button class="status-btn btn-cross ${crossActive}" 
+                            data-index="${idx}" 
+                            data-status="missed" 
+                            ${isStatusClickable ? '' : 'disabled'}
+                            title="${isStatusClickable ? 'Mark Missed' : 'LOCKED (Hour not passed)'}">✗</button>
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- Action Panel / Lock Button -->
       <div id="modal-action-panel" style="margin-top: 20px; padding-bottom: 20px;"></div>
     </div>
   `;
 
-  // Bind close buttons
+  // Render Mascot widget dynamically inside modal header
+  const mascotBox = container.querySelector('#modal-mascot-container');
+  if (mascotBox) {
+    let mascotMood = "normal";
+    if (isFuture) mascotMood = "planning";
+    else {
+      const scheduled = slots.slice(1).filter(s => s.text && s.text.trim() !== "");
+      const completed = scheduled.filter(s => s.status === 'completed').length;
+      const rate = scheduled.length > 0 ? (completed / scheduled.length) * 100 : 0;
+      if (dayLog.isReviewed || isPast) {
+        mascotMood = rate >= 70 ? "happy" : "sad";
+      } else {
+        mascotMood = "normal";
+      }
+    }
+    renderMascotWidget(mascotBox, mascotMood);
+  }
+
+  // Bind close button
   container.querySelector('#modal-close-btn').addEventListener('click', closeFn);
 
-  // Bind inputs save event
+  // Bind text inputs save events
   const inputs = container.querySelectorAll('.slot-txt-input');
   inputs.forEach(input => {
     input.addEventListener('change', () => {
       const idx = parseInt(input.getAttribute('data-index'));
       slots[idx].text = input.value;
       saveDay(dateStr, dayLog);
-      // Re-render to update the status column buttons if schedule text toggled empty/non-empty
+      
+      // Re-render to display connecting trail nodes and status buttons
       renderModalContent(dateStr, container, closeFn);
     });
   });
 
-  // Bind status button clicks
+  // Bind status chimes toggles
   const statusButtons = container.querySelectorAll('.status-btn');
   statusButtons.forEach(btn => {
     btn.addEventListener('click', () => {
@@ -169,7 +197,6 @@ function renderModalContent(dateStr, container, closeFn) {
           playSuccessSound();
           showToast("Task completed! +10 XP & +1 💎", "success");
           
-          // Reward standard task rewards
           const p = getProfile();
           p.diamonds += 1;
           saveProfile(p);
@@ -181,7 +208,6 @@ function renderModalContent(dateStr, container, closeFn) {
           playPivotSound();
           showToast("Diverged logged! +1 💎 Honesty Bonus", "info");
           
-          // Award 1 diamond honesty reward
           const p = getProfile();
           p.diamonds += 1;
           saveProfile(p);
@@ -196,7 +222,7 @@ function renderModalContent(dateStr, container, closeFn) {
     });
   });
 
-  // Render Lock button or status banner at bottom
+  // Render bottom locking panels
   const actionPanel = container.querySelector('#modal-action-panel');
   if (actionPanel) {
     const scheduledHours = slots.slice(1).filter(s => s.text && s.text.trim() !== "");
@@ -224,11 +250,11 @@ function renderModalContent(dateStr, container, closeFn) {
           const p = getProfile();
           const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
 
-          // Streak check
+          // Streak verification
           if (p.lastReviewDate === yesterdayStr) {
             p.streak += 1;
           } else if (p.lastReviewDate === dateStr) {
-            // Already synced
+            // No action needed
           } else {
             if (p.streakFreezeActive) {
               p.streakFreezeActive = false;
@@ -239,9 +265,8 @@ function renderModalContent(dateStr, container, closeFn) {
           }
 
           p.lastReviewDate = dateStr;
-          p.diamonds += 1; // Standard review reward
+          p.diamonds += 1;
 
-          // Milestone check
           let claimMilestone = false;
           let rewardAmt = 0;
           const milestoneKey = `streak_${p.streak}`;
@@ -263,7 +288,6 @@ function renderModalContent(dateStr, container, closeFn) {
             alert(`🏆 MILESTONE REACHED! You earned +${rewardAmt} 💎 for a ${p.streak}-Day streak!`);
           }
 
-          // Trigger End of Day recap screen
           triggerEODRecap(dateStr, closeFn);
         }
       });
