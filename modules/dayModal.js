@@ -34,6 +34,9 @@ function renderModalContent(dateStr, container, closeFn) {
   const isFuture = dateStr > todayStr;
   const isToday = dateStr === todayStr;
   const isPast = dateStr < todayStr;
+  
+  const tomorrowStr = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+  const isTomorrow = dateStr === tomorrowStr;
 
   // Premium friendly date formatting
   const d = new Date(dateStr + 'T00:00:00Z');
@@ -59,9 +62,14 @@ function renderModalContent(dateStr, container, closeFn) {
 
   // Render the structural outer template
   container.innerHTML = `
-    <div class="modal-header-row">
-      <span class="modal-date-title">📅 ${displayTitle}</span>
-      <button class="btn-close" id="modal-close-btn">&times;</button>
+    <div class="modal-header-row" style="justify-content: flex-start; gap: 12px;">
+      <button class="btn-back" id="modal-close-btn" aria-label="Go back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <span class="modal-date-title" style="margin: 0; text-align: left;">📅 ${displayTitle}</span>
     </div>
     
     <div id="modal-body-container" class="modal-body-scroll" style="padding-top: 10px;">
@@ -76,8 +84,9 @@ function renderModalContent(dateStr, container, closeFn) {
         </div>
         <input type="text" class="slot-txt-input satisfaction-input" 
                data-index="0" 
-               value="${slots[0].text || ''}" 
+               value="${(slots[0].text && slots[0].text !== 'Satisfaction') ? slots[0].text : ''}" 
                placeholder="How satisfied are you with your day?"
+               ${dayLog.isReviewed ? 'disabled' : ''}
                style="flex: 1; font-weight: 600; padding: 4px 8px; border-radius: 8px;">
       </div>
 
@@ -91,12 +100,22 @@ function renderModalContent(dateStr, container, closeFn) {
           let hourPast = isPast || (isToday && startHour < currentHour);
           let hourRunning = isToday && startHour === currentHour;
           
-          // Editing rules
-          const isEditable = isFuture || (isToday && startHour > currentHour);
+          // Editing rules: only Today's future hours, and Tomorrow's slots
+          const isEditable = (isToday && startHour > currentHour) || isTomorrow;
           
           // Status rules
           const hasText = slot.text && slot.text.trim() !== "";
           const isStatusClickable = hasText && hourPast;
+
+          // Determine custom placeholders based on editable state and day position
+          let placeholderText = "No schedule";
+          if (isEditable) {
+            placeholderText = "Type schedule...";
+          } else if (dateStr > tomorrowStr) {
+            placeholderText = "Locked";
+          } else if (hasText) {
+            placeholderText = "";
+          }
 
           // Active markers
           const tickActive = slot.status === 'completed' ? 'active' : '';
@@ -118,7 +137,7 @@ function renderModalContent(dateStr, container, closeFn) {
                   <input type="text" class="slot-txt-input hourly-schedule-input" 
                          data-index="${idx}" 
                          value="${slot.text || ''}" 
-                         placeholder="${isEditable ? 'Type schedule...' : (hasText ? '' : 'No schedule')}"
+                         placeholder="${placeholderText}"
                          ${isEditable ? '' : 'disabled'}>
                 </div>
                 
@@ -168,16 +187,33 @@ function renderModalContent(dateStr, container, closeFn) {
   // Bind close button
   container.querySelector('#modal-close-btn').addEventListener('click', closeFn);
 
-  // Bind text inputs save events
+  // Bind text inputs save events & Enter key navigation
   const inputs = container.querySelectorAll('.slot-txt-input');
   inputs.forEach(input => {
     input.addEventListener('change', () => {
       const idx = parseInt(input.getAttribute('data-index'));
       slots[idx].text = input.value;
       saveDay(dateStr, dayLog);
-      
-      // Re-render to display connecting trail nodes and status buttons
       renderModalContent(dateStr, container, closeFn);
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const idx = parseInt(input.getAttribute('data-index'));
+        slots[idx].text = input.value;
+        saveDay(dateStr, dayLog);
+        
+        e.preventDefault();
+
+        // Focus next hour row input if it is editable
+        const nextInput = container.querySelector(`.slot-txt-input[data-index="${idx + 1}"]`);
+        if (nextInput && !nextInput.disabled) {
+          nextInput.focus();
+        } else {
+          // Re-render to show updated status buttons and node icons
+          renderModalContent(dateStr, container, closeFn);
+        }
+      }
     });
   });
 
@@ -294,7 +330,7 @@ function renderModalContent(dateStr, container, closeFn) {
     } else if (scheduledHours.length === 0) {
       actionPanel.innerHTML = `
         <p class="hint" style="text-align: center;">
-          ${isEditableDay(isToday, isFuture) ? 'Write down tasks for the hourly slots to build your schedule.' : 'No tasks scheduled on this day.'}
+          ${isEditableDay(isToday, isTomorrow) ? 'Write down tasks for the hourly slots to build your schedule.' : 'No tasks scheduled on this day.'}
         </p>
       `;
     } else {
@@ -308,6 +344,6 @@ function renderModalContent(dateStr, container, closeFn) {
   }
 }
 
-function isEditableDay(isToday, isFuture) {
-  return isToday || isFuture;
+function isEditableDay(isToday, isTomorrow) {
+  return isToday || isTomorrow;
 }

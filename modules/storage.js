@@ -238,7 +238,7 @@ export function getDay(dateStr) {
     // Initialize slots if missing
     if (!log.slots || log.slots.length !== 25) {
       log.slots = [
-        { time: "0000-2400", text: "Satisfaction", status: "none" }
+        { time: "0000-2400", text: "", status: "none" }
       ];
       for (let h = 0; h < 24; h++) {
         const start = String(h).padStart(2, '0') + "00";

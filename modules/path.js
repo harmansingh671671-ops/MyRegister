@@ -200,9 +200,19 @@ export function renderPath(container) {
           tooltip = 'Day Skipped';
         }
       } else if (isFuture) {
-        nodeType = 'locked';
-        icon = '🔒';
-        tooltip = 'Locked';
+        nodeType = 'future';
+        const FUTURE_DAY_ICONS = {
+          0: "🛌", // Sunday
+          1: "💻", // Monday
+          2: "📚", // Tuesday
+          3: "🏃", // Wednesday
+          4: "⚡", // Thursday
+          5: "🎯", // Friday
+          6: "🧘"  // Saturday
+        };
+        const nodeDayOfWeek = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+        icon = FUTURE_DAY_ICONS[nodeDayOfWeek] || "📅";
+        tooltip = 'Future Planning Locked';
       }
 
       const xOffset = Math.sin(index * 1.1) * 65;
