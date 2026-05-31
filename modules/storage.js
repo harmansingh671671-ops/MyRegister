@@ -391,3 +391,24 @@ export function importJSON(jsonStr) {
     return false;
   }
 }
+
+export function getYetToCreditDiamonds() {
+  initStorage();
+  try {
+    const days = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
+    let yetToCredit = 0;
+    for (const dateStr in days) {
+      const dayLog = days[dateStr];
+      if (dayLog && !dayLog.isReviewed && Array.isArray(dayLog.slots)) {
+        // Count slots marked as completed or missed (excluding satisfaction index 0)
+        yetToCredit += dayLog.slots.slice(1).filter(s => s.status === 'completed' || s.status === 'missed').length;
+        // Count fitness steps bonus if any
+        yetToCredit += (dayLog.stepBonusDiamonds || 0);
+      }
+    }
+    return yetToCredit;
+  } catch (e) {
+    console.error('Error calculating yet-to-credit diamonds:', e);
+    return 0;
+  }
+}

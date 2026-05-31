@@ -102,8 +102,10 @@ function renderModalContent(dateStr, container, closeFn) {
           let hourPast = isPast || (isToday && startHour < currentHour);
           let hourRunning = isToday && startHour === currentHour;
           
-          // Editing rules: only Today's future hours, and Tomorrow's slots
-          const isEditable = (isToday && startHour > currentHour) || isTomorrow;
+          // Editing rules: Yesterday, Today, and Tomorrow's slots
+          const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+          const isYesterday = dateStr === yesterdayStr;
+          const isEditable = isToday || isTomorrow || isYesterday;
           
           // Status rules
           const hasText = slot.text && slot.text.trim() !== "";
@@ -243,22 +245,18 @@ function renderModalContent(dateStr, container, closeFn) {
         newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
         if (newStatus === 'completed') {
           playSuccessSound();
-          showToast("Task completed! +10 XP & +1 💎", "success");
-          
-          const p = getProfile();
-          p.diamonds += 1;
-          saveProfile(p);
           addXp(10);
+          showToast("Task completed! +10 XP (+1 💎 yet to credit)", "success");
+        } else {
+          showToast("Task reset to pending.", "info");
         }
       } else if (action === 'missed') {
         newStatus = currentStatus === 'missed' ? 'pending' : 'missed';
         if (newStatus === 'missed') {
           playPivotSound();
-          showToast("Diverged logged! +1 💎 Honesty Bonus", "info");
-          
-          const p = getProfile();
-          p.diamonds += 1;
-          saveProfile(p);
+          showToast("Diverged logged! (+1 💎 honesty bonus yet to credit)", "info");
+        } else {
+          showToast("Task reset to pending.", "info");
         }
       }
 
@@ -292,6 +290,9 @@ function renderModalContent(dateStr, container, closeFn) {
       actionPanel.querySelector('#lock-day-review-btn').addEventListener('click', async () => {
         const confirm = await showConfirm("Sign and lock this day review? This secures your streak.");
         if (confirm) {
+          // Count yet-to-credit diamonds for this day (completed and missed slots plus step bonus if any)
+          const dayDiamonds = slots.slice(1).filter(s => s.status === 'completed' || s.status === 'missed').length + (dayLog.stepBonusDiamonds || 0);
+
           dayLog.isReviewed = true;
           saveDay(dateStr, dayLog);
 
@@ -313,7 +314,10 @@ function renderModalContent(dateStr, container, closeFn) {
           }
 
           p.lastReviewDate = dateStr;
-          p.diamonds += 1;
+          
+          // Credit day diamonds to the permanent balance!
+          p.diamonds += dayDiamonds;
+          showToast(`🎉 Day locked! +${dayDiamonds} 💎 credited to your account!`, "success");
 
           let claimMilestone = false;
           let rewardAmt = 0;

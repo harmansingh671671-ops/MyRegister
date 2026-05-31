@@ -1,5 +1,5 @@
 // Modules/integrity.js
-import { getProfile, saveProfile } from './storage.js';
+import { getProfile, saveProfile, getDay, saveDay } from './storage.js';
 import { addXp } from './gamification.js';
 import { playSuccessSound, playPivotSound, showToast } from './notifications.js';
 
@@ -87,14 +87,16 @@ export function renderIntegrityPanel(container) {
   // Bind steps
   container.querySelector('#sync-steps-btn').onclick = () => {
     const inputVal = parseInt(container.querySelector('#sim-steps-input').value) || 0;
-    const prof = getProfile();
     
     if (inputVal >= 10000) {
       addXp(25);
-      prof.diamonds += 2;
-      saveProfile(prof);
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todayLog = getDay(todayStr);
+      todayLog.stepBonusDiamonds = 2;
+      saveDay(todayStr, todayLog);
+      
       playSuccessSound();
-      showToast("Step goal crushed! +25 XP and +2 💎 awarded.", "success");
+      showToast("Step goal crushed! +25 XP (+2 💎 yet to credit)", "success");
     } else if (inputVal >= 5000) {
       addXp(10);
       playSuccessSound();

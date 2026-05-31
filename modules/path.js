@@ -1,5 +1,5 @@
 // Modules/path.js
-import { getDay, getProfile } from './storage.js';
+import { getDay, getProfile, getYetToCreditDiamonds } from './storage.js';
 import { openDayModal } from './dayModal.js';
 import { showPrompt } from './notifications.js';
 import { renderMascotWidget } from './mascot.js';
@@ -71,7 +71,7 @@ export function renderPath(container) {
         <span class="stat-icon">🏁</span>
         <span class="stat-text text-secondary" id="header-section-num">1</span>
       </div>
-      <div class="duo-stat text-xp" title="Level">
+      <div class="duo-stat text-xp" title="Military Rank">
         <span class="stat-icon">${badgeEmoji}</span>
         <span class="stat-text header-level-val">${activeRankName}</span>
       </div>
@@ -81,7 +81,7 @@ export function renderPath(container) {
       </div>
       <div class="duo-stat text-gem" title="Gems">
         <span class="stat-icon">💎</span>
-        <span class="stat-text header-diamond-val">${profile.diamonds}</span>
+        <span class="stat-text header-diamond-val">${profile.diamonds}+${getYetToCreditDiamonds()}</span>
       </div>
       <div class="duo-stat text-heart" title="Integrity Health (Last 24 entries)">
         <span class="stat-icon">💖</span>

@@ -1,5 +1,5 @@
 // App.js - Main application entry point with error handling
-import { initStorage, getProfile, calculateIntegrityHealth, saveProfile } from './modules/storage.js';
+import { initStorage, getProfile, calculateIntegrityHealth, saveProfile, getYetToCreditDiamonds } from './modules/storage.js';
 import { renderOnboarding } from './modules/onboarding.js';
 import { renderPath } from './modules/path.js';
 import { renderAnalytics } from './modules/analytics.js';
@@ -137,14 +137,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Sync pills when profile changes
-    window.addEventListener('tempo_profile_changed', () => {
+    // Sync pills when profile or logs change
+    const triggerUpdate = () => {
       try {
         updateHeaderPills();
       } catch (e) {
         console.error('Header update error:', e);
       }
-    });
+    };
+    window.addEventListener('tempo_profile_changed', triggerUpdate);
+    window.addEventListener('tempo_logs_changed', triggerUpdate);
 
     function updateHeaderPills() {
       try {
@@ -154,7 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const levels = document.querySelectorAll('.header-level-val');
 
         streaks.forEach(el => el.textContent = Math.max(0, profile.streak));
-        diamonds.forEach(el => el.textContent = Math.max(0, profile.diamonds));
+        
+        // Render diamonds as x+y
+        const yetToCredit = getYetToCreditDiamonds();
+        diamonds.forEach(el => el.textContent = `${Math.max(0, profile.diamonds)}+${yetToCredit}`);
 
         const activeRankName = profile.militaryRank || 'Civilian';
         const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
