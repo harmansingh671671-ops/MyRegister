@@ -153,7 +153,7 @@ export function renderDashboard(container) {
       <div class="modal-backdrop" id="shop-backdrop"></div>
       <div class="shop-card card-3d animate-pop">
         <div class="shop-header">
-          <h2>🛒 Tempo Shop</h2>
+          <h2>🛒 Odyssey Shop</h2>
           <button id="close-shop-btn" class="btn-close">&times;</button>
         </div>
         <div class="shop-diamonds">

@@ -158,7 +158,7 @@ function renderPerformanceView(container) {
       <div class="coach-header">
         <span class="coach-avatar">🦉</span>
         <div>
-          <h3>Tempo AI Habit Coach</h3>
+          <h3>Odyssey AI Habit Coach</h3>
           <p class="hint">Tips derived from your weekly block patterns.</p>
         </div>
       </div>

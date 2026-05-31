@@ -48,7 +48,7 @@ export function renderSettings(container) {
       <!-- Right Box: Data Controls -->
       <div class="card card-3d">
         <h3>📂 Data Ownership & Privacy</h3>
-        <p class="hint">Download or restore all database records. Tempo runs entirely in your sandbox browser.</p>
+        <p class="hint">Download or restore all database records. Odyssey runs entirely in your sandbox browser.</p>
         
         <div class="settings-backup-controls" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
           <button id="settings-export-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
@@ -140,7 +140,7 @@ export function renderSettings(container) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tempo_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `odyssey_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });

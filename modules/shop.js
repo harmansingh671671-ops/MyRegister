@@ -7,7 +7,7 @@ export function renderShop(container) {
 
   container.innerHTML = `
     <div class="view-header">
-      <h2>🛒 Tempo Shop</h2>
+      <h2>🛒 Odyssey Shop</h2>
       <p class="subtitle">Spend your diamonds to customize themes, unlock companion pets, buy outfits, or freeze streaks.</p>
     </div>
 
@@ -48,7 +48,7 @@ export function renderShop(container) {
         <h3>🎨 App Style Themes</h3>
         <p class="hint">Changes the colors of your simulated phone background and buttons.</p>
         <div class="shop-grid">
-          ${renderCosmeticItem("Theme", "default", "default", "Tempo Slate", "🌑", 0, profile)}
+          ${renderCosmeticItem("Theme", "default", "default", "Odyssey Slate", "🌑", 0, profile)}
           ${renderCosmeticItem("Theme", "cyberpunk", "unlockedThemes", "Cyberpunk Neon", "🌌", 30, profile)}
           ${renderCosmeticItem("Theme", "forest", "unlockedThemes", "Autumn Forest", "🍁", 20, profile)}
           ${renderCosmeticItem("Theme", "sakura", "unlockedThemes", "Sakura Pink", "🌸", 20, profile)}
@@ -60,7 +60,7 @@ export function renderShop(container) {
         <h3>🐻 Mascot Species</h3>
         <p class="hint">Unlock different animals to coach you on your dashboard.</p>
         <div class="shop-grid">
-          ${renderCosmeticItem("Mascot", "owl", "default", "Tempo Owl", "🦉", 0, profile)}
+          ${renderCosmeticItem("Mascot", "owl", "default", "Odyssey Owl", "🦉", 0, profile)}
           ${renderCosmeticItem("Mascot", "bear", "unlockedMascots", "Focus Bear", "🐻", 25, profile)}
           ${renderCosmeticItem("Mascot", "cat", "unlockedMascots", "Smart Cat", "🐱", 25, profile)}
         </div>

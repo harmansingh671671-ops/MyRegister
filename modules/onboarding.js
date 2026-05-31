@@ -87,7 +87,7 @@ export function renderOnboarding(container, onComplete) {
       container.innerHTML = `
         <div class="onboarding-card card-3d animate-pop">
           <div class="onboarding-header">
-            <h2>🦉 Welcome to Tempo!</h2>
+            <h2>🦉 Welcome to Odyssey!</h2>
             <p>Let's personalize your accountability path. What should we call you?</p>
           </div>
 

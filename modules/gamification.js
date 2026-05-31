@@ -282,7 +282,7 @@ export function triggerEODRecap(dateStr, closeParentModalFn) {
     const activeRankName = profile.militaryRank || 'Civilian';
     const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
     const badgeEmoji = rankObj ? rankObj.badge : '🍃';
-    const shareText = `Tempo Day Review 📅\nRank: ${activeRankName} ${badgeEmoji} | Streak: ${profile.streak} 🔥\nDaily Compliance: ${rate}%\nActivity Board: ${gridEmojis || 'None'}\nBuild honesty habits with Tempo!`;
+    const shareText = `Odyssey Day Review 📅\nRank: ${activeRankName} ${badgeEmoji} | Streak: ${profile.streak} 🔥\nDaily Compliance: ${rate}%\nActivity Board: ${gridEmojis || 'None'}\nBuild honesty habits with Odyssey!`;
     navigator.clipboard.writeText(shareText).then(() => {
       showToast("Copied recap text to clipboard! 🎉", "success");
     }).catch(err => {
