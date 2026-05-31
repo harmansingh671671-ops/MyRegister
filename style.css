@@ -609,7 +609,7 @@ body {
   z-index: 1;
   pointer-events: none; /* Clicks pass to the button */
   transform-origin: center center;
-  animation: ringPulse 3.5s cubic-bezier(0.86, 0, 0.07, 1) infinite;
+  animation: ringPulse 2s cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
 }
 
 /* Inner masking ring to make the conic-gradient look like a thick stroke */
@@ -625,19 +625,15 @@ body {
 @keyframes ringPulse {
   0% {
     transform: scale(0.96);
-    opacity: 0.8;
+    opacity: 0.75;
   }
-  45% {
-    transform: scale(1.18); /* expands away from the node icon */
+  50% {
+    transform: scale(1.16); /* expands away from the node icon */
     opacity: 1;
   }
-  75% {
-    transform: scale(0.98); /* merges back into the node icon */
-    opacity: 0.9;
-  }
   100% {
-    transform: scale(0.96);
-    opacity: 0.8;
+    transform: scale(0.96); /* merges back into the node icon */
+    opacity: 0.75;
   }
 }
 
