@@ -252,7 +252,6 @@ export function renderPath(container) {
 
       return `
         <div class="path-node-wrapper" style="transform: translateX(${node.xOffset}px);">
-          ${node.isToday ? `<div class="owl-avatar-path">🦉</div>` : ''}
           ${node.isToday ? `
             <div class="today-progress-ring-container" style="width: 90px; height: 80px; ${inlineStyle}"></div>
             <button class="day-node node-active" data-date="${node.dateStr}" title="${node.tooltip}">
