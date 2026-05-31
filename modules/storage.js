@@ -94,6 +94,22 @@ function validateProfile(profile) {
   return validated;
 }
 
+export function requestPersistentStorage() {
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then((persisted) => {
+      if (!persisted) {
+        navigator.storage.persist().then((granted) => {
+          if (granted) {
+            console.log('Storage persistence granted.');
+          } else {
+            console.log('Storage persistence denied.');
+          }
+        }).catch(err => console.error('Error requesting persistence:', err));
+      }
+    }).catch(err => console.error('Error checking persistence:', err));
+  }
+}
+
 export function initStorage() {
   try {
     if (!localStorage.getItem(PROFILE_KEY)) {
@@ -105,6 +121,7 @@ export function initStorage() {
     if (!localStorage.getItem(REASONS_KEY)) {
       localStorage.setItem(REASONS_KEY, JSON.stringify(DEFAULT_MISS_REASONS));
     }
+    requestPersistentStorage();
   } catch (e) {
     console.error('Error initializing storage:', e);
   }
