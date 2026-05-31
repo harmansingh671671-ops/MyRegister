@@ -2230,5 +2230,446 @@ canvas {
 }
 
 
+/* ============================================================
+   SOCIAL TAB — inder branch
+   All styles prefixed with .social- to avoid collisions
+   ============================================================ */
+
+.social-view {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* ── Header ── */
+.social-header {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+.social-title {
+  font-family: var(--font-header);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.social-subtitle {
+  font-size: 13px;
+  color: var(--text-hint);
+}
+
+/* ── Section Labels ── */
+.social-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.social-section-label {
+  font-family: var(--font-header);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-hint);
+  padding-left: 2px;
+}
+
+/* ── Friends Strip ── */
+.social-friends-strip {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+.social-friends-strip::-webkit-scrollbar { height: 3px; }
+.social-friends-strip::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 2px; }
+
+.social-friend-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  cursor: pointer;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: 16px;
+  padding: 10px 12px;
+  min-width: 64px;
+  transition: border-color 0.2s ease, transform 0.1s ease;
+}
+.social-friend-chip:hover {
+  border-color: var(--duo-blue);
+  transform: translateY(-2px);
+}
+.social-friend-avatar {
+  position: relative;
+  font-size: 26px;
+  line-height: 1;
+}
+.social-friend-outfit {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  font-size: 14px;
+}
+.social-friend-name {
+  font-family: var(--font-header);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.social-friend-streak {
+  font-size: 11px;
+  color: var(--duo-orange);
+  font-weight: 600;
+}
+
+/* Add Friend chip */
+.social-add-friend {
+  border-style: dashed;
+  opacity: 0.7;
+}
+.social-add-friend:hover { opacity: 1; border-color: var(--duo-green); }
+.social-add-avatar {
+  font-size: 22px;
+  color: var(--text-secondary);
+}
+
+/* ── Composer ── */
+.social-composer {
+  background: var(--bg-surface);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.social-composer-mood {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.composer-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.mood-options {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.mood-btn {
+  font-size: 18px;
+  background: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  padding: 4px 6px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  line-height: 1;
+}
+.mood-btn:hover { border-color: var(--duo-blue); transform: scale(1.15); }
+.mood-btn--active {
+  border-color: var(--duo-blue);
+  background: rgba(28, 176, 246, 0.15);
+  transform: scale(1.15);
+}
+.social-composer-input {
+  width: 100%;
+  background: var(--bg-hover);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 10px 12px;
+  resize: none;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.social-composer-input:focus { border-color: var(--duo-blue); }
+.social-composer-input::placeholder { color: var(--text-hint); }
+.social-composer-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.char-count {
+  font-size: 11px;
+  color: var(--text-hint);
+}
+.social-post-btn {
+  background: var(--duo-blue);
+  color: #fff;
+  border: none;
+  border-bottom: 4px solid var(--duo-blue-bottom);
+  border-radius: 12px;
+  padding: 8px 16px;
+  font-family: var(--font-header);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.social-post-btn:hover { filter: brightness(1.1); }
+.social-post-btn:active { transform: translateY(3px); border-bottom-width: 1px; }
+
+/* ── Feed Cards ── */
+.social-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.social-card {
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: 18px;
+  padding: 14px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.2s ease;
+}
+.social-card:hover { border-color: rgba(28,176,246,0.4); }
+.social-card--own {
+  border-color: rgba(88,204,2,0.4);
+  background: linear-gradient(135deg, rgba(88,204,2,0.06) 0%, var(--bg-surface) 100%);
+}
+
+.social-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.social-avatar {
+  position: relative;
+  font-size: 28px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+.social-avatar-outfit {
+  position: absolute;
+  bottom: -4px;
+  right: -6px;
+  font-size: 14px;
+}
+.social-card-meta {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 2px;
+}
+.social-author-name {
+  font-family: var(--font-header);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+.social-time {
+  font-size: 11px;
+  color: var(--text-hint);
+}
+.social-mood-badge {
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.social-card-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  padding: 0 2px;
+}
+
+/* ── Reactions ── */
+.social-reactions-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.social-reaction-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.social-reaction-pill {
+  background: var(--bg-hover);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+.social-react-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.social-react-btn {
+  background: transparent;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 15px;
+  padding: 3px 6px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.1s ease, background 0.15s ease;
+  line-height: 1;
+}
+.social-react-btn:hover {
+  border-color: var(--duo-gold);
+  background: rgba(255,200,0,0.1);
+  transform: scale(1.2);
+}
+.social-react-btn:active { transform: scale(0.95); }
+
+/* ── Mascot Social Reaction Banner ── */
+.social-mascot-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, rgba(28,176,246,0.18) 0%, rgba(88,204,2,0.12) 100%);
+  border: 2px solid rgba(28,176,246,0.4);
+  border-radius: 16px;
+  padding: 10px 14px;
+  margin-bottom: 4px;
+  animation: slideDown 0.35s ease;
+  transition: opacity 0.5s ease;
+}
+.social-mascot-banner.fade-out { opacity: 0; transform: translateY(-8px); }
+
+.banner-mascot { font-size: 26px; line-height: 1; flex-shrink: 0; }
+.banner-msg {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+/* ── Add Friend Modal ── */
+.social-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+}
+.social-modal.hidden { display: none !important; }
+
+.social-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(3px);
+}
+.social-modal-card {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-surface);
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px 32px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  border: 2px solid var(--border-color);
+  border-bottom: none;
+}
+.social-modal-card h3 {
+  font-family: var(--font-header);
+  font-size: 18px;
+  font-weight: 800;
+}
+.social-modal-sub {
+  font-size: 12px;
+  color: var(--text-hint);
+  margin-top: -6px;
+}
+.social-modal-input {
+  width: 100%;
+  background: var(--bg-hover);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 14px;
+  padding: 12px 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.social-modal-input:focus { border-color: var(--duo-blue); }
+.social-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.social-modal-cancel {
+  flex: 1;
+  background: var(--bg-hover);
+  border: 2px solid var(--border-color);
+  border-bottom: 4px solid var(--border-color);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-family: var(--font-header);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.social-modal-confirm {
+  flex: 2;
+  background: var(--duo-green);
+  border: none;
+  border-bottom: 4px solid var(--duo-green-bottom);
+  border-radius: 14px;
+  color: #fff;
+  font-family: var(--font-header);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.social-modal-confirm:hover { filter: brightness(1.1); }
+.social-modal-confirm:active { transform: translateY(3px); border-bottom-width: 1px; }
+
+/* ── Animations ── */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+/* ── Error state ── */
+.social-error {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--duo-red);
+  font-family: var(--font-header);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   END — SOCIAL TAB (inder branch)
+   ============================================================ */
+
+
 
 
