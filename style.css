@@ -25,6 +25,9 @@
   --duo-red: #ff4b4b;
   --duo-red-bottom: #ea2b2b;
   
+  --duo-purple: #7c3aed;
+  --duo-purple-bottom: #6d28d9;
+  
   --duo-gray: #858585;
   --duo-gray-bottom: #666666;
 
@@ -199,7 +202,7 @@ body {
 }
 
 .text-streak { color: var(--duo-orange); }
-.text-gem { color: var(--duo-blue); }
+.text-gem, .text-diamond { color: var(--duo-blue); }
 .text-heart { color: var(--duo-red); }
 
 /* --- SECTION-WISE COLOR THEME INHERITANCE --- */
@@ -218,27 +221,27 @@ body {
 .theme-red {
   --theme-color: var(--duo-red);
   --theme-color-bottom: var(--duo-red-bottom);
-  --theme-gradient: linear-gradient(135deg, #ff4b4b 0%, #ff9600 100%);
+  --theme-gradient: linear-gradient(135deg, var(--duo-red) 0%, var(--duo-orange) 100%);
 }
 .theme-green {
   --theme-color: var(--duo-green);
   --theme-color-bottom: var(--duo-green-bottom);
-  --theme-gradient: linear-gradient(135deg, #58cc02 0%, #00cd9c 100%);
+  --theme-gradient: linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%);
 }
 .theme-blue {
   --theme-color: var(--duo-blue);
   --theme-color-bottom: var(--duo-blue-bottom);
-  --theme-gradient: linear-gradient(135deg, #1cb0f6 0%, #7c3aed 100%);
+  --theme-gradient: linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-purple) 100%);
 }
 .theme-gold {
   --theme-color: var(--duo-gold);
   --theme-color-bottom: var(--duo-gold-bottom);
-  --theme-gradient: linear-gradient(135deg, #ffc800 0%, #ff9600 100%);
+  --theme-gradient: linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%);
 }
 .theme-orange {
   --theme-color: var(--duo-orange);
   --theme-color-bottom: var(--duo-orange-bottom);
-  --theme-gradient: linear-gradient(135deg, #ff9600 0%, #ff4b4b 100%);
+  --theme-gradient: linear-gradient(135deg, var(--duo-orange) 0%, var(--duo-red) 100%);
 }
 
 /* Color overrides on unit banners */
@@ -987,7 +990,7 @@ body {
 /* --- SHOP VIEW --- */
 .shop-balance-banner {
   text-align: center;
-  background-color: rgba(28, 176, 246, 0.08);
+  background-color: color-mix(in srgb, var(--duo-blue) 8%, transparent);
   border-color: var(--duo-blue);
 }
 .shop-balance-banner h2 {
@@ -1179,9 +1182,9 @@ canvas {
   font-size: 13px;
 }
 
-.advice-success { background-color: rgba(88, 204, 2, 0.08); border-left: 4px solid var(--duo-green); }
-.advice-warning { background-color: rgba(255, 75, 75, 0.08); border-left: 4px solid var(--duo-red); }
-.advice-info { background-color: rgba(28, 176, 246, 0.08); border-left: 4px solid var(--duo-blue); }
+.advice-success { background-color: color-mix(in srgb, var(--duo-green) 8%, transparent); border-left: 4px solid var(--duo-green); }
+.advice-warning { background-color: color-mix(in srgb, var(--duo-red) 8%, transparent); border-left: 4px solid var(--duo-red); }
+.advice-info { background-color: color-mix(in srgb, var(--duo-blue) 8%, transparent); border-left: 4px solid var(--duo-blue); }
 
 /* --- CELEBRATIONS MODAL --- */
 .celebration-card {
@@ -1257,12 +1260,12 @@ canvas {
 
 /* Active tab style: Blue rounded rectangle border around the icon container */
 .mobile-bottom-nav .nav-link.active {
-  color: #1cb0f6; /* Blue active text color */
+  color: var(--duo-blue);
 }
 
 .mobile-bottom-nav .nav-link.active .nav-icon-container {
-  border-color: #1cb0f6; /* Blue active outline */
-  background-color: rgba(28, 176, 246, 0.1); /* Subtle blue background */
+  border-color: var(--duo-blue);
+  background-color: color-mix(in srgb, var(--duo-blue) 10%, transparent);
 }
 
 .mobile-bottom-nav .nav-text {
@@ -1792,6 +1795,12 @@ canvas {
   --duo-green-bottom: #059669;
   --duo-red: #f72585;
   --duo-red-bottom: #b5179e;
+  --duo-gold: #ffd60a;
+  --duo-gold-bottom: #ffc300;
+  --duo-orange: #ff7000;
+  --duo-orange-bottom: #cc5a00;
+  --duo-purple: #7209b7;
+  --duo-purple-bottom: #560bad;
   --theme-color: #f72585;
 }
 
@@ -1810,6 +1819,12 @@ canvas {
   --duo-green-bottom: #6a994e;
   --duo-red: #bc4749;
   --duo-red-bottom: #9b2226;
+  --duo-gold: #e9c46a;
+  --duo-gold-bottom: #dfb242;
+  --duo-orange: #f4a261;
+  --duo-orange-bottom: #e76f51;
+  --duo-purple: #505c53;
+  --duo-purple-bottom: #37463a;
   --theme-color: #a7c957;
 }
 
@@ -1828,12 +1843,18 @@ canvas {
   --duo-green-bottom: #4d908e;
   --duo-red: #f8ad9d;
   --duo-red-bottom: #f4978e;
+  --duo-gold: #faedcd;
+  --duo-gold-bottom: #d4a373;
+  --duo-orange: #fbc4ab;
+  --duo-orange-bottom: #ffb5a7;
+  --duo-purple: #b39ddb;
+  --duo-purple-bottom: #9575cd;
   --theme-color: #ffb7c5;
 }
 
 /* 2. Top Stats Header Pill color */
 .text-xp {
-  color: #a855f7;
+  color: var(--duo-purple);
 }
 
 /* 3. Sub Tabs Navigation Styles */
@@ -2780,7 +2801,7 @@ canvas {
 .mood-btn:hover { border-color: var(--duo-blue); transform: scale(1.15); }
 .mood-btn--active {
   border-color: var(--duo-blue);
-  background: rgba(28, 176, 246, 0.15);
+  background: color-mix(in srgb, var(--duo-blue) 15%, transparent);
   transform: scale(1.15);
 }
 .social-composer-input {
@@ -3179,7 +3200,7 @@ canvas {
   transition: background 0.15s ease;
 }
 .social-notif-item:last-child { border-bottom: none; }
-.social-notif-item--unread { background: rgba(28, 176, 246, 0.06); }
+.social-notif-item--unread { background: color-mix(in srgb, var(--duo-blue) 6%, transparent); }
 .social-notif-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
 .social-notif-body { flex: 1; }
 .social-notif-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; margin-bottom: 2px; }
@@ -3227,8 +3248,8 @@ canvas {
   transition: background 0.15s ease;
 }
 .social-lb-row--me {
-  background: rgba(28, 176, 246, 0.12);
-  border: 1.5px solid rgba(28, 176, 246, 0.3);
+  background: color-mix(in srgb, var(--duo-blue) 12%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--duo-blue) 30%, transparent);
 }
 .social-lb-medal { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
 .social-lb-mascot { font-size: 20px; flex-shrink: 0; }

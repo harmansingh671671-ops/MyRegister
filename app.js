@@ -1,5 +1,5 @@
 // App.js - Main application entry point with error handling
-import { initStorage, getProfile, calculateIntegrityHealth, saveProfile, getYetToCreditDiamonds } from './modules/storage.js';
+import { initStorage, getProfile, calculateIntegrityHealth, saveProfile, getYetToCreditDiamonds, autoLockPastDays } from './modules/storage.js';
 import { renderOnboarding } from './modules/onboarding.js';
 import { renderPath } from './modules/path.js';
 import { renderAnalytics } from './modules/analytics.js';
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try {
     // 1. Initialize local database
     initStorage();
+    autoLockPastDays();
     calculateIntegrityHealth();
     calculateMilitaryRank();
 

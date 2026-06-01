@@ -80,9 +80,26 @@ function validateProfile(profile) {
   validated.goals = Array.isArray(profile.goals) ? profile.goals.filter(g => typeof g === 'object') : [];
   validated.weekNames = (typeof profile.weekNames === 'object' && profile.weekNames !== null) ? profile.weekNames : {};
   validated.unlockedThemes = Array.isArray(profile.unlockedThemes) ? profile.unlockedThemes : ['default'];
-  validated.equippedTheme = ['default', 'dark', 'ocean', 'forest'].includes(profile.equippedTheme) ? profile.equippedTheme : 'default';
+  validated.equippedTheme = ['default', 'cyberpunk', 'forest', 'sakura', 'dark', 'ocean'].includes(profile.equippedTheme) ? profile.equippedTheme : 'default';
   validated.militaryRank = sanitizeString(profile.militaryRank || 'Civilian');
   validated.leagueTier = ['Bronze', 'Silver', 'Gold', 'Diamond'].includes(profile.leagueTier) ? profile.leagueTier : 'Bronze';
+  
+  // Customizations and additional arrays
+  validated.unlockedBadges = Array.isArray(profile.unlockedBadges) ? profile.unlockedBadges : [];
+  validated.equippedBadge = profile.equippedBadge ? sanitizeString(profile.equippedBadge) : null;
+  validated.maxDailyXP = Math.max(0, Math.floor(profile.maxDailyXP || 0));
+  
+  validated.unlockedMascots = Array.isArray(profile.unlockedMascots) ? profile.unlockedMascots : ['owl'];
+  validated.equippedMascot = ['owl', 'bear', 'cat'].includes(profile.equippedMascot) ? profile.equippedMascot : 'owl';
+  
+  validated.unlockedOutfits = Array.isArray(profile.unlockedOutfits) ? profile.unlockedOutfits : ['none'];
+  validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor'].includes(profile.equippedOutfit) ? profile.equippedOutfit : 'none';
+  
+  validated.unlockedSounds = Array.isArray(profile.unlockedSounds) ? profile.unlockedSounds : ['default'];
+  validated.equippedSound = ['default', 'scifi', 'zen', 'retro'].includes(profile.equippedSound) ? profile.equippedSound : 'default';
+  
+  validated.weeklyLeaderboard = Array.isArray(profile.weeklyLeaderboard) ? profile.weeklyLeaderboard : [];
+  validated.violationLog = Array.isArray(profile.violationLog) ? profile.violationLog : [];
   
   // Preserve dates
   validated.lastPlanDate = sanitizeString(profile.lastPlanDate || '');
@@ -429,3 +446,114 @@ export function getYetToCreditDiamonds() {
     return 0;
   }
 }
+
+export function autoLockPastDays() {
+  try {
+    const profile = getProfile();
+    let startDateStr = profile.lastReviewDate || profile.createdDate;
+    
+    if (!startDateStr) {
+      const days = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
+      const dates = Object.keys(days).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+      if (dates.length > 0) {
+        startDateStr = dates[0];
+      }
+    }
+    
+    if (!startDateStr) return;
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayDate = new Date(todayStr + 'T00:00:00Z');
+    const startDate = new Date(startDateStr + 'T00:00:00Z');
+    
+    const checkDate = new Date(startDate.getTime());
+    checkDate.setUTCDate(checkDate.getUTCDate() + 1);
+    
+    let profileUpdated = false;
+    
+    while (true) {
+      const dateStr = checkDate.toISOString().split('T')[0];
+      if (dateStr >= todayStr) {
+        break;
+      }
+      
+      const dayLog = getDay(dateStr);
+      
+      if (!dayLog.isReviewed) {
+        // Calculate yesterday of checkDate for streak verification
+        const yesterdayOfCheckDate = new Date(checkDate.getTime());
+        yesterdayOfCheckDate.setUTCDate(yesterdayOfCheckDate.getUTCDate() - 1);
+        const yesterdayOfCheckDateStr = yesterdayOfCheckDate.toISOString().split('T')[0];
+        
+        // 1. Streak verification / update
+        if (dayLog.isCommitted) {
+          // User committed a schedule: streak remains intact
+          if (profile.lastReviewDate === yesterdayOfCheckDateStr) {
+            profile.streak += 1;
+          } else if (profile.lastReviewDate === dateStr) {
+            // Already reviewed this date (should be skipped since !isReviewed, but just in case)
+          } else {
+            // Not consecutive, starts new streak
+            profile.streak = 1;
+          }
+          
+          if (profile.streak > profile.highestStreak) {
+            profile.highestStreak = profile.streak;
+          }
+          
+          // Check milestone reward
+          const milestoneKey = `streak_${profile.streak}`;
+          if ([7, 15, 30].includes(profile.streak) && !profile.milestonesClaimed.includes(milestoneKey)) {
+            profile.milestonesClaimed.push(milestoneKey);
+            const rewardAmt = profile.streak === 7 ? 10 : profile.streak === 15 ? 25 : 50;
+            profile.diamonds += rewardAmt;
+          }
+        } else {
+          // User did NOT commit a schedule: streak breaks/lost
+          if (profile.streak > 0) {
+            if (profile.streakFreezeActive) {
+              profile.streakFreezeActive = false;
+            } else {
+              profile.streak = 0;
+            }
+          }
+        }
+        
+        // 2. Diamond crediting for committed day
+        if (dayLog.isCommitted) {
+          // Auto-resolve pending hourly slots to missed
+          if (Array.isArray(dayLog.slots)) {
+            dayLog.slots.slice(1).forEach(slot => {
+              if (slot && slot.text && slot.text.trim() !== "" && slot.status === 'pending') {
+                slot.status = 'missed';
+                slot.missReason = "Auto-logged as missed";
+                slot.loggedAt = new Date().toISOString();
+              }
+            });
+          }
+          
+          // Recalculate day's diamonds
+          const dayDiamonds = dayLog.slots.slice(1).filter(s => s.status === 'completed' || s.status === 'missed').length + (dayLog.stepBonusDiamonds || 0);
+          profile.diamonds += dayDiamonds;
+        }
+        
+        // 3. Mark day as reviewed & save day log
+        dayLog.isReviewed = true;
+        saveDay(dateStr, dayLog);
+        
+        // Update lastReviewDate to the dateStr we just processed
+        profile.lastReviewDate = dateStr;
+        profileUpdated = true;
+      }
+      
+      checkDate.setUTCDate(checkDate.getUTCDate() + 1);
+    }
+    
+    if (profileUpdated) {
+      saveProfile(profile);
+    }
+  } catch (e) {
+    console.error('Error auto locking past days:', e);
+  }
+}
+

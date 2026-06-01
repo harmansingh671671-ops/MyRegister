@@ -12,8 +12,8 @@ const LESSONS = [
     id: 'dopamine_focus',
     title: 'The Neurobiology of Focus & Dopamine',
     emoji: '🧠',
-    gradient: 'linear-gradient(135deg, #ff4b4b 0%, #ff9600 100%)',
-    gradientBorder: '#ff4b4b',
+    gradient: 'linear-gradient(135deg, var(--duo-red) 0%, var(--duo-orange) 100%)',
+    gradientBorder: 'var(--duo-red)',
     tag: 'Neuroscience',
     readTime: '4 min read',
     body: `
@@ -51,8 +51,8 @@ const LESSONS = [
     id: 'bj_fogg_habit',
     title: 'The BJ Fogg Habit Loop (B = MAP)',
     emoji: '🔁',
-    gradient: 'linear-gradient(135deg, #58cc02 0%, #1cb0f6 100%)',
-    gradientBorder: '#58cc02',
+    gradient: 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%)',
+    gradientBorder: 'var(--duo-green)',
     tag: 'Habit Science',
     readTime: '3 min read',
     body: `
@@ -96,8 +96,8 @@ const LESSONS = [
     id: 'circadian_sleep',
     title: 'Circadian Rhythm & Sleep Pressure',
     emoji: '🌙',
-    gradient: 'linear-gradient(135deg, #4c1d95 0%, #1cb0f6 100%)',
-    gradientBorder: '#7c3aed',
+    gradient: 'linear-gradient(135deg, var(--duo-purple) 0%, var(--duo-blue) 100%)',
+    gradientBorder: 'var(--duo-purple)',
     tag: 'Sleep Science',
     readTime: '5 min read',
     body: `
@@ -136,8 +136,8 @@ const LESSONS = [
     id: 'automaticity_66',
     title: 'The 66-Day Automaticity Rule',
     emoji: '📅',
-    gradient: 'linear-gradient(135deg, #ff9600 0%, #ffc800 100%)',
-    gradientBorder: '#ff9600',
+    gradient: 'linear-gradient(135deg, var(--duo-orange) 0%, var(--duo-gold) 100%)',
+    gradientBorder: 'var(--duo-orange)',
     tag: 'Habit Formation',
     readTime: '3 min read',
     body: `
@@ -182,9 +182,9 @@ const BOOKS = [
     title: 'Atomic Habits',
     author: 'James Clear',
     emoji: '⚛️',
-    color: '#ff9600',
-    colorDark: '#e68500',
-    spine: 'linear-gradient(180deg, #ff9600, #ff4b4b)',
+    color: 'var(--duo-orange)',
+    colorDark: 'var(--duo-orange-bottom)',
+    spine: 'linear-gradient(180deg, var(--duo-orange), var(--duo-red))',
     thesis: 'Habits compound over time. A 1% improvement every day makes you 37× better in a year. Focus on system design, not willpower or motivation.',
     takeaways: [
       { icon: '🪪', point: 'Identity-Based Habits', detail: 'Focus on who you want to become, not what you want to achieve. "I am a writer" beats "I want to write a book."' },
@@ -200,9 +200,9 @@ const BOOKS = [
     title: 'Tiny Habits',
     author: 'BJ Fogg',
     emoji: '🌱',
-    color: '#58cc02',
-    colorDark: '#46a302',
-    spine: 'linear-gradient(180deg, #58cc02, #1cb0f6)',
+    color: 'var(--duo-green)',
+    colorDark: 'var(--duo-green-bottom)',
+    spine: 'linear-gradient(180deg, var(--duo-green), var(--duo-blue))',
     thesis: 'Behaviors are created when Motivation, Ability, and a Prompt converge simultaneously (B = MAP). Never start big — start so small it requires zero motivation.',
     takeaways: [
       { icon: '🔗', point: 'Anchor Habits', detail: 'Hook a new habit to a strong existing routine. "After I pour my morning coffee, I will write one sentence."' },
@@ -217,9 +217,9 @@ const BOOKS = [
     title: 'Deep Work',
     author: 'Cal Newport',
     emoji: '🎯',
-    color: '#1cb0f6',
-    colorDark: '#1899d6',
-    spine: 'linear-gradient(180deg, #1cb0f6, #4c1d95)',
+    color: 'var(--duo-blue)',
+    colorDark: 'var(--duo-blue-bottom)',
+    spine: 'linear-gradient(180deg, var(--duo-blue), var(--duo-purple))',
     thesis: 'The ability to focus without distraction on cognitively demanding tasks is a superpower. Deep work produces results that shallow work cannot.',
     takeaways: [
       { icon: '🧠', point: 'Cognitive Residue', detail: 'Every time you switch tasks, part of your attention remains stuck on the previous task. Batch your work to minimize switching.' },
@@ -234,9 +234,9 @@ const BOOKS = [
     title: 'Dopamine Nation',
     author: 'Dr. Anna Lembke',
     emoji: '⚖️',
-    color: '#ff4b4b',
-    colorDark: '#ea2b2b',
-    spine: 'linear-gradient(180deg, #ff4b4b, #ff9600)',
+    color: 'var(--duo-red)',
+    colorDark: 'var(--duo-red-bottom)',
+    spine: 'linear-gradient(180deg, var(--duo-red), var(--duo-orange))',
     thesis: 'The brain processes pleasure and pain in the same region. In our overstimulated world, constant dopamine hits create a deficit state where everyday life feels grey.',
     takeaways: [
       { icon: '⚖️', point: 'Pleasure-Pain Balance', detail: 'Every pleasure tips the balance; the brain compensates with pain. Moderation restores equilibrium.' },
@@ -251,9 +251,9 @@ const BOOKS = [
     title: 'Why We Sleep',
     author: 'Matthew Walker',
     emoji: '😴',
-    color: '#7c3aed',
-    colorDark: '#5b21b6',
-    spine: 'linear-gradient(180deg, #7c3aed, #1cb0f6)',
+    color: 'var(--duo-purple)',
+    colorDark: 'var(--duo-purple-bottom)',
+    spine: 'linear-gradient(180deg, var(--duo-purple), var(--duo-blue))',
     thesis: 'Sleep is the single most important biological function for learning, memory consolidation, emotional regulation, and physical health.',
     takeaways: [
       { icon: '🔋', point: 'Sleep Clears the Brain', detail: 'The glymphatic system flushes toxins (including Alzheimer\'s-linked amyloid) only during sleep. You literally clean your brain at night.' },
@@ -273,7 +273,7 @@ const CASE_STUDIES = [
     emoji: '🚴',
     title: 'Marginal Gains: British Cycling',
     subtitle: 'How 1% improvements led to Olympic dominance',
-    gradient: 'linear-gradient(135deg, #ffc800 0%, #ff9600 100%)',
+    gradient: 'linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%)',
     story: `In 2003, the British cycling team had never won the Tour de France. Performance director <strong>Dave Brailsford</strong> introduced the philosophy of "aggregation of marginal gains" — if you break down everything that goes into riding a bike and improve each element by just 1%, you get a significant overall increase.
 
 They redesigned bike seats, tested which pillow reduced athlete fatigue, painted the inside of their truck white to spot maintenance issues, and taught cyclists the best way to wash their hands to reduce illness.
@@ -286,7 +286,7 @@ They redesigned bike seats, tested which pillow reduced athlete fatigue, painted
     emoji: '🍪',
     title: 'The Cookie Habit Loop',
     subtitle: 'Charles Duhigg diagnoses his own habit',
-    gradient: 'linear-gradient(135deg, #58cc02 0%, #1cb0f6 100%)',
+    gradient: 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%)',
     story: `<em>The Power of Habit</em> author <strong>Charles Duhigg</strong> noticed he was walking to the cafeteria every afternoon for a cookie — and gaining weight. Instead of using willpower, he investigated his habit loop.
 
 He identified: <strong>Cue</strong> (around 3:30 PM, feeling bored), <strong>Routine</strong> (walk to cafeteria, chat with colleagues, eat cookie), <strong>Reward</strong> (socializing and mental stimulation — not actually the cookie).

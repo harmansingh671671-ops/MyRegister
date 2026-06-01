@@ -145,7 +145,7 @@ export function renderPath(container) {
     <div id="trophy-modal" class="fullscreen-modal hidden">
       <div class="modal-backdrop" id="trophy-backdrop"></div>
       <div class="modal-card day-details-card card-3d animate-pop" id="trophy-modal-content">
-        <div class="modal-hero" style="background: linear-gradient(135deg, #ffc800 0%, #ff9600 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+        <div class="modal-hero" style="background: linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
           <button class="btn-back" id="close-trophy-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
               <line x1="19" y1="12" x2="5" y2="12"></line>
@@ -352,19 +352,19 @@ export function renderPath(container) {
     stickyTitleText.textContent = sec.name;
     stickyGuideBtn.setAttribute('data-week', sec.num);
 
-    let gradient = 'linear-gradient(135deg, #ff4b4b 0%, #ff9600 100%)';
+    let gradient = 'linear-gradient(135deg, var(--duo-red) 0%, var(--duo-orange) 100%)';
     let themeColorBottom = 'var(--duo-red-bottom)';
     if (sec.theme === 'green') {
-      gradient = 'linear-gradient(135deg, #58cc02 0%, #00cd9c 100%)';
+      gradient = 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%)';
       themeColorBottom = 'var(--duo-green-bottom)';
     } else if (sec.theme === 'blue') {
-      gradient = 'linear-gradient(135deg, #1cb0f6 0%, #7c3aed 100%)';
+      gradient = 'linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-purple) 100%)';
       themeColorBottom = 'var(--duo-blue-bottom)';
     } else if (sec.theme === 'gold') {
-      gradient = 'linear-gradient(135deg, #ffc800 0%, #ff9600 100%)';
+      gradient = 'linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%)';
       themeColorBottom = 'var(--duo-gold-bottom)';
     } else if (sec.theme === 'orange') {
-      gradient = 'linear-gradient(135deg, #ff9600 0%, #ff4b4b 100%)';
+      gradient = 'linear-gradient(135deg, var(--duo-orange) 0%, var(--duo-red) 100%)';
       themeColorBottom = 'var(--duo-orange-bottom)';
     }
     

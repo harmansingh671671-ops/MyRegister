@@ -152,7 +152,7 @@ export function renderDashboard(container) {
     <div id="shop-modal" class="fullscreen-modal hidden">
       <div class="modal-backdrop" id="shop-backdrop"></div>
       <div class="modal-card shop-card card-3d animate-pop">
-        <div class="modal-hero" style="background: linear-gradient(135deg, #1cb0f6 0%, #ff9600 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+        <div class="modal-hero" style="background: linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-orange) 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
           <button class="btn-back" id="close-shop-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
               <line x1="19" y1="12" x2="5" y2="12"></line>

@@ -67,29 +67,29 @@ function renderModalContent(dateStr, container, closeFn) {
   const completed = scheduled.filter(s => s.status === 'completed').length;
   const rate = scheduled.length > 0 ? Math.round((completed / scheduled.length) * 100) : 0;
 
-  let heroGradient = 'linear-gradient(135deg, #1cb0f6 0%, #1899d6 100%)';
+  let heroGradient = 'linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-blue-bottom) 100%)';
   let statusText = "Today's Agenda";
 
   if (isFuture) {
     if (isTomorrow) {
-      heroGradient = 'linear-gradient(135deg, #00cd9c 0%, #1cb0f6 100%)';
+      heroGradient = 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%)';
       statusText = "Planning Tomorrow";
     } else {
-      heroGradient = 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)';
+      heroGradient = 'linear-gradient(135deg, var(--duo-gray) 0%, var(--duo-gray-bottom) 100%)';
       statusText = "Future Schedule";
     }
   } else if (isPast) {
     if (scheduled.length === 0) {
-      heroGradient = 'linear-gradient(135deg, #a1a8a9 0%, #4f585a 100%)';
+      heroGradient = 'linear-gradient(135deg, var(--duo-gray) 0%, var(--duo-gray-bottom) 100%)';
       statusText = "No Tasks Scheduled";
     } else if (rate === 100) {
-      heroGradient = 'linear-gradient(135deg, #58cc02 0%, #46a302 100%)';
+      heroGradient = 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-green-bottom) 100%)';
       statusText = "100% Perfect Completion";
     } else if (rate > 0) {
-      heroGradient = 'linear-gradient(135deg, #ff9600 0%, #e68500 100%)';
+      heroGradient = 'linear-gradient(135deg, var(--duo-orange) 0%, var(--duo-orange-bottom) 100%)';
       statusText = `${rate}% Tasks Completed`;
     } else {
-      heroGradient = 'linear-gradient(135deg, #ff4b4b 0%, #ea2b2b 100%)';
+      heroGradient = 'linear-gradient(135deg, var(--duo-red) 0%, var(--duo-red-bottom) 100%)';
       statusText = "0% Tasks Completed";
     }
   }
