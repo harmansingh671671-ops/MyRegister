@@ -213,71 +213,159 @@ function markAllNotificationsRead() {
   } catch (e) { console.error('[Social] Mark read error:', e); }
 }
 
-// ─── RENDER HELPERS ───────────────────────────────────────────────────────────
+// ─── LIKE HELPER ─────────────────────────────────────────────────────────────
 
-function renderReactions(post) {
-  const pills = Object.entries(post.reactions || {})
-    .filter(([, c]) => c > 0)
-    .map(([e, c]) => `<span class="social-reaction-pill">${e} ${c}</span>`)
-    .join('');
-  const btns = REACTION_OPTIONS.map(e =>
-    `<button class="social-react-btn" data-post-id="${post.id}" data-emoji="${e}">${e}</button>`
-  ).join('');
-  return `
-    <div class="social-reactions-row">
-      <div class="social-reaction-pills">${pills}</div>
-      <div class="social-react-buttons">${btns}</div>
-    </div>
-  `;
+function likePost(postId) {
+  try {
+    const data = getSocialData();
+    const post = data.posts.find(p => p.id === postId);
+    if (!post) return 0;
+    if (!post.likes) post.likes = 0;
+    post.likes++;
+    saveSocialData(data);
+    return post.likes;
+  } catch (e) { console.error('[Social] Like error:', e); return 0; }
 }
+
+function replyCount(post) {
+  return (post.replies || []).length;
+}
+
+function likeCount(post) {
+  return post.likes || 0;
+}
+
+function repostCount(post) {
+  return post.reposts || 0;
+}
+
+// ─── TWITTER-STYLE RENDER HELPERS ────────────────────────────────────────────
 
 function renderReplies(post) {
   const replies = post.replies || [];
   if (replies.length === 0) return '';
+  return replies.slice(0, 3).map(r => `
+    <div class="tw-reply-row">
+      <div class="tw-reply-avatar-col">
+        <div class="tw-reply-avatar">${r.authorMascot}</div>
+      </div>
+      <div class="tw-reply-body">
+        <div class="tw-reply-header">
+          <span class="tw-reply-name">${r.authorName}</span>
+          <span class="tw-reply-time">${formatTimeAgo(r.timestamp)}</span>
+        </div>
+        <p class="tw-reply-text">${r.text}</p>
+      </div>
+    </div>
+  `).join('') + (replies.length > 3 ? `
+    <p class="tw-show-more-replies">Show ${replies.length - 3} more replies</p>
+  ` : '');
+}
+
+function renderPostCard(post, isOwn = false) {
+  const likes    = likeCount(post);
+  const reposts  = repostCount(post);
+  const replies  = replyCount(post);
+  const handle   = '@' + post.authorName.toLowerCase().replace(/\s+/g, '');
+
   return `
-    <div class="social-replies-preview">
-      ${replies.slice(0, 2).map(r => `
-        <div class="social-reply-item">
-          <span class="social-reply-mascot">${r.authorMascot}</span>
-          <div class="social-reply-bubble">
-            <span class="social-reply-name">${r.authorName}</span>
-            <p class="social-reply-text">${r.text}</p>
+    <div class="tw-post" data-post-id="${post.id}">
+
+      ${post.repostOf ? `
+        <div class="tw-repost-label">🔁 <span>${isOwn ? 'You' : post.authorName} reposted</span></div>
+      ` : ''}
+
+      <div class="tw-post-inner">
+
+        <!-- Left: Avatar column -->
+        <div class="tw-avatar-col">
+          <div class="tw-avatar social-avatar--clickable"
+               data-friend-id="${post.authorId}"
+               data-friend-name="${post.authorName}">
+            <span class="tw-avatar-mascot">${post.authorMascot}</span>
+            ${post.authorOutfit ? `<span class="tw-avatar-outfit">${post.authorOutfit}</span>` : ''}
+          </div>
+          ${replies > 0 ? '<div class="tw-thread-line"></div>' : ''}
+        </div>
+
+        <!-- Right: Content column -->
+        <div class="tw-content-col">
+
+          <!-- Header -->
+          <div class="tw-post-header">
+            <span class="tw-post-name">${post.authorName}</span>
+            <span class="tw-post-handle">${handle}</span>
+            <span class="tw-post-dot">·</span>
+            <span class="tw-post-time">${formatTimeAgo(post.timestamp)}</span>
+            <span class="tw-post-mood">${post.mood}</span>
+            ${isOwn ? '<span class="tw-you-badge">You</span>' : ''}
+          </div>
+
+          <!-- Post text -->
+          <p class="tw-post-text">${post.text}</p>
+
+          <!-- Replies thread -->
+          <div class="tw-replies-thread" id="tw-replies-${post.id}">
+            ${renderReplies(post)}
+          </div>
+
+          <!-- Reply composer (hidden) -->
+          <div class="tw-reply-composer hidden" id="reply-composer-${post.id}">
+            <div class="tw-reply-compose-inner">
+              <div class="tw-reply-compose-avatar">${post.authorMascot}</div>
+              <input type="text" class="tw-reply-compose-input social-reply-input"
+                     data-post-id="${post.id}"
+                     placeholder="Post your reply…"
+                     maxlength="140" />
+              <button class="tw-reply-compose-btn social-reply-submit" data-post-id="${post.id}">Reply</button>
+            </div>
+          </div>
+
+          <!-- Twitter-style action bar -->
+          <div class="tw-action-bar">
+
+            <!-- Reply -->
+            <button class="tw-action-btn social-reply-toggle-btn" data-post-id="${post.id}" title="Reply">
+              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              ${replies > 0 ? `<span class="tw-action-count">${replies}</span>` : ''}
+            </button>
+
+            <!-- Repost -->
+            <button class="tw-action-btn tw-repost-action social-repost-btn" data-post-id="${post.id}" title="Repost"
+                    ${isOwn ? 'disabled' : ''}>
+              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+                <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+              </svg>
+              ${reposts > 0 ? `<span class="tw-action-count">${reposts}</span>` : ''}
+            </button>
+
+            <!-- Like (heart) -->
+            <button class="tw-action-btn tw-like-btn" data-post-id="${post.id}" title="Like">
+              <svg class="tw-action-icon tw-heart-icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+              <span class="tw-action-count tw-like-count" id="tw-like-count-${post.id}">${likes > 0 ? likes : ''}</span>
+            </button>
+
+            <!-- Share -->
+            <button class="tw-action-btn" title="Share">
+              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+            </button>
+
           </div>
         </div>
-      `).join('')}
-      ${replies.length > 2 ? `<p class="social-replies-more">+${replies.length - 2} more replies</p>` : ''}
+      </div>
     </div>
   `;
 }
 
-function renderPostCard(post, isOwn = false) {
-  return `
-    <div class="social-card ${isOwn ? 'social-card--own' : ''}" data-post-id="${post.id}">
-      ${post.repostOf ? `<div class="social-repost-banner">🔁 Reposted from ${post.repostOf}</div>` : ''}
-      <div class="social-card-header">
-        <div class="social-avatar social-avatar--clickable" data-friend-id="${post.authorId}" data-friend-name="${post.authorName}">
-          <span class="social-avatar-mascot">${post.authorMascot}</span>
-          ${post.authorOutfit ? `<span class="social-avatar-outfit">${post.authorOutfit}</span>` : ''}
-        </div>
-        <div class="social-card-meta">
-          <span class="social-author-name">${post.authorName}${isOwn ? ' <span class="social-you-tag">You</span>' : ''}</span>
-          <span class="social-time">${formatTimeAgo(post.timestamp)}</span>
-        </div>
-        <span class="social-mood-badge">${post.mood}</span>
-      </div>
-      <p class="social-card-text">${post.text}</p>
-      ${renderReactions(post)}
-      ${renderReplies(post)}
-      <div class="social-card-actions">
-        <button class="social-action-btn social-reply-toggle-btn" data-post-id="${post.id}">
-          💬 Reply ${(post.replies || []).length > 0 ? `(${post.replies.length})` : ''}
-        </button>
-        ${!isOwn ? `<button class="social-action-btn social-repost-btn" data-post-id="${post.id}">🔁 Repost</button>` : ''}
-      </div>
-      <div class="social-reply-composer hidden" id="reply-composer-${post.id}">
-        <input type="text" class="social-reply-input" data-post-id="${post.id}" placeholder="Write a reply…" maxlength="140" />
-        <button class="social-reply-submit" data-post-id="${post.id}">Send ↗</button>
-      </div>
     </div>
   `;
 }
@@ -682,26 +770,28 @@ export function renderSocial(container) {
         });
       });
 
-      // Reactions
-      feed.querySelectorAll('.social-react-btn').forEach(btn => {
+      // Likes (heart button)
+      feed.querySelectorAll('.tw-like-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           try {
-            const postId = btn.dataset.postId;
-            const emoji  = btn.dataset.emoji;
-            reactToPost(postId, emoji);
-            const updatedData = getSocialData();
-            const post = updatedData.posts.find(p => p.id === postId);
-            const card = feed.querySelector(`[data-post-id="${postId}"]`);
-            if (post && card) {
-              card.querySelector('.social-reactions-row').outerHTML = renderReactions(post);
-              // Update our local reference
-              const localPost = data.posts.find(p => p.id === postId);
-              if (localPost && post.reactions) localPost.reactions = post.reactions;
-              bindFeedEvents(feed);
+            const postId   = btn.dataset.postId;
+            const newCount = likePost(postId);
+            const localPost = data.posts.find(p => p.id === postId);
+            if (localPost) localPost.likes = newCount;
+            // Animate heart
+            const heart = btn.querySelector('.tw-heart-icon');
+            if (heart) {
+              heart.classList.add('tw-heart--liked');
+              btn.classList.add('tw-like-btn--liked');
             }
-          } catch (e) { console.error('[Social] Reaction error:', e); }
+            // Update count display
+            const countEl = btn.querySelector('.tw-like-count');
+            if (countEl) countEl.textContent = newCount > 0 ? newCount : '';
+            btn.disabled = true;
+          } catch (e) { console.error('[Social] Like btn error:', e); }
         });
       });
+
 
       // Reply toggle
       feed.querySelectorAll('.social-reply-toggle-btn').forEach(btn => {
@@ -735,16 +825,16 @@ export function renderSocial(container) {
                 const post = updatedData.posts.find(p => p.id === postId);
                 const localPost = data.posts.find(p => p.id === postId);
                 if (localPost && post) localPost.replies = post.replies;
-                // Re-render replies in card
-                let repliesEl = card.querySelector('.social-replies-preview');
-                if (repliesEl) {
-                  repliesEl.outerHTML = renderReplies(post || localPost);
-                } else {
-                  const reactRow = card.querySelector('.social-reactions-row');
-                  if (reactRow) {
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = renderReplies(post || localPost);
-                    reactRow.insertAdjacentElement('afterend', tempDiv.firstElementChild);
+                // Re-render replies thread (Twitter layout)
+                const repliesThread = card.querySelector(`#tw-replies-${postId}`);
+                if (repliesThread) {
+                  repliesThread.innerHTML = renderReplies(post || localPost);
+                  // Add thread line if not present
+                  const avatarCol = card.querySelector('.tw-avatar-col');
+                  if (avatarCol && !avatarCol.querySelector('.tw-thread-line')) {
+                    const line = document.createElement('div');
+                    line.className = 'tw-thread-line';
+                    avatarCol.appendChild(line);
                   }
                 }
                 // Update reply button count
