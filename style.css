@@ -2670,7 +2670,454 @@ canvas {
    END — SOCIAL TAB (inder branch)
    ============================================================ */
 
+/* ============================================================
+   # Social Tab v2 — Twitter Features (inder branch)
+   ============================================================ */
 
+/* ── Header with Bell ── */
+.social-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0 8px;
+}
+.social-header-left { display: flex; align-items: center; gap: 10px; }
+.social-live-pulse {
+  font-family: var(--font-header);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--duo-green);
+  background: rgba(88, 204, 2, 0.12);
+  border: 1px solid rgba(88, 204, 2, 0.3);
+  border-radius: 20px;
+  padding: 3px 10px;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.social-bell-btn {
+  position: relative;
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 18px;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.1s ease;
+}
+.social-bell-btn:hover { border-color: var(--duo-blue); transform: scale(1.08); }
+.social-bell-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: var(--duo-red);
+  color: #fff;
+  font-family: var(--font-header);
+  font-size: 10px;
+  font-weight: 800;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--bg-dark);
+  animation: badge-pop 0.3s ease;
+}
+@keyframes badge-pop {
+  0% { transform: scale(0); }
+  80% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* ── Notification Panel ── */
+.social-notif-panel {
+  background: var(--bg-surface);
+  border: 2px solid var(--border-color);
+  border-radius: 18px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  animation: slide-down 0.25s ease;
+}
+@keyframes slide-down {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.social-notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+.social-notif-title { font-family: var(--font-header); font-size: 14px; font-weight: 800; }
+.social-notif-mark-read {
+  background: none;
+  border: none;
+  color: var(--duo-blue);
+  font-family: var(--font-header);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.social-notif-list { max-height: 260px; overflow-y: auto; }
+.social-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--bg-hover);
+  position: relative;
+  transition: background 0.15s ease;
+}
+.social-notif-item:last-child { border-bottom: none; }
+.social-notif-item--unread { background: rgba(28, 176, 246, 0.06); }
+.social-notif-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.social-notif-body { flex: 1; }
+.social-notif-text { font-size: 13px; color: var(--text-primary); line-height: 1.4; margin-bottom: 2px; }
+.social-notif-time { font-size: 11px; color: var(--text-hint); }
+.social-notif-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--duo-blue);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+}
+.social-notif-empty { padding: 20px; text-align: center; color: var(--text-hint); font-size: 13px; }
+
+/* ── Friend Chips (online dot) ── */
+.social-friend-online-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--duo-green);
+  border: 2px solid var(--bg-dark);
+  border-radius: 50%;
+}
+.social-friend-avatar { position: relative; }
+
+/* ── Leaderboard ── */
+.social-leaderboard {
+  background: var(--bg-surface);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.social-lb-title { font-family: var(--font-header); font-size: 14px; font-weight: 800; margin-bottom: 2px; }
+.social-lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: var(--bg-hover);
+  transition: background 0.15s ease;
+}
+.social-lb-row--me {
+  background: rgba(28, 176, 246, 0.12);
+  border: 1.5px solid rgba(28, 176, 246, 0.3);
+}
+.social-lb-medal { font-size: 18px; flex-shrink: 0; width: 24px; text-align: center; }
+.social-lb-mascot { font-size: 20px; flex-shrink: 0; }
+.social-lb-name { flex: 1; font-family: var(--font-header); font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.social-lb-streak { font-family: var(--font-header); font-size: 12px; font-weight: 700; color: var(--duo-gold); }
+
+/* ── Feed Tabs ── */
+.social-feed-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border-color);
+  margin-bottom: 12px;
+  gap: 0;
+}
+.social-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-hint);
+  font-family: var(--font-header);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 4px;
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease;
+  margin-bottom: -2px;
+}
+.social-tab-btn:hover { color: var(--text-primary); }
+.social-tab-btn--active { color: var(--text-primary); border-bottom-color: var(--duo-blue); }
+
+/* ── Trending Tags ── */
+.social-trending-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0 14px;
+}
+.social-trending-tag {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-family: var(--font-header);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.social-trending-tag em { color: var(--duo-blue); font-style: normal; margin-left: 4px; }
+
+/* ── Post Card Actions (Reply + Repost) ── */
+.social-card-actions {
+  display: flex;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--bg-hover);
+  margin-top: 4px;
+}
+.social-action-btn {
+  background: none;
+  border: 1.5px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-hint);
+  font-family: var(--font-header);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.social-action-btn:hover { border-color: var(--duo-blue); color: var(--duo-blue); background: rgba(28,176,246,0.06); }
+
+/* ── Repost Banner ── */
+.social-repost-banner {
+  font-size: 11px;
+  color: var(--text-hint);
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: var(--bg-hover);
+  border-radius: 6px;
+  display: inline-block;
+}
+
+/* ── Reply Composer ── */
+.social-reply-composer {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  align-items: center;
+}
+.social-reply-input {
+  flex: 1;
+  background: var(--bg-hover);
+  border: 1.5px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.social-reply-input:focus { border-color: var(--duo-blue); }
+.social-reply-submit {
+  background: var(--duo-blue);
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  font-family: var(--font-header);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: filter 0.15s ease;
+}
+.social-reply-submit:hover { filter: brightness(1.1); }
+
+/* ── Replies Preview ── */
+.social-replies-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--bg-hover);
+  border-radius: 10px;
+}
+.social-reply-item { display: flex; gap: 8px; align-items: flex-start; }
+.social-reply-mascot { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+.social-reply-bubble { background: var(--bg-surface); border-radius: 10px; padding: 6px 10px; flex: 1; }
+.social-reply-name { font-family: var(--font-header); font-size: 11px; font-weight: 800; color: var(--text-primary); display: block; margin-bottom: 2px; }
+.social-reply-text { font-size: 12px; color: var(--text-secondary); line-height: 1.4; }
+.social-replies-more { font-size: 11px; color: var(--duo-blue); font-weight: 600; cursor: pointer; padding-left: 4px; }
+
+/* ── You tag ── */
+.social-you-tag {
+  font-family: var(--font-header);
+  font-size: 10px;
+  font-weight: 800;
+  background: rgba(28,176,246,0.15);
+  color: var(--duo-blue);
+  border-radius: 5px;
+  padding: 1px 6px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+/* ── Avatar clickable ── */
+.social-avatar--clickable { cursor: pointer; transition: transform 0.15s ease; }
+.social-avatar--clickable:hover { transform: scale(1.12); }
+
+/* ── Profile Card Modal ── */
+.social-profile-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: flex-end;
+}
+.social-profile-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+}
+.social-profile-card {
+  position: relative;
+  z-index: 1;
+  background: var(--bg-dark);
+  border: 2px solid var(--border-color);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  width: 100%;
+  max-height: 88%;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.social-profile-hero {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+}
+.social-profile-avatar-big {
+  font-size: 52px;
+  line-height: 1;
+  position: relative;
+  flex-shrink: 0;
+}
+.social-profile-outfit-big {
+  position: absolute;
+  bottom: -4px;
+  right: -8px;
+  font-size: 22px;
+}
+.social-profile-info { flex: 1; }
+.social-profile-name { font-family: var(--font-header); font-size: 20px; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; }
+.social-profile-rank {
+  font-family: var(--font-header);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  background: rgba(255,200,0,0.15);
+  color: var(--duo-gold);
+  border-radius: 6px;
+  padding: 2px 8px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.social-profile-bio { font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+.social-profile-stats-row {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+}
+.social-profile-stat {
+  background: var(--bg-surface);
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+.social-profile-stat-val { font-family: var(--font-header); font-size: 16px; font-weight: 800; color: var(--text-primary); }
+.social-profile-stat-label { font-size: 10px; color: var(--text-hint); font-weight: 600; }
+.social-profile-recent { display: flex; flex-direction: column; gap: 8px; }
+.social-profile-recent-label { font-family: var(--font-header); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: var(--text-hint); }
+.social-profile-recent-post {
+  background: var(--bg-surface);
+  border-radius: 12px;
+  padding: 10px 12px;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+.social-profile-recent-time { font-size: 10px; color: var(--text-hint); flex-shrink: 0; margin-top: 2px; }
+.social-profile-challenge-btn {
+  background: linear-gradient(135deg, var(--duo-blue), #7c3aed);
+  color: #fff;
+  border: none;
+  border-bottom: 4px solid #1899d6;
+  border-radius: 14px;
+  padding: 13px;
+  font-family: var(--font-header);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+.social-profile-challenge-btn:hover { filter: brightness(1.1); }
+.social-profile-challenge-btn:active { transform: translateY(3px); border-bottom-width: 1px; }
+.social-profile-challenge-btn:disabled { opacity: 0.7; cursor: default; }
+.social-profile-close {
+  background: var(--bg-hover);
+  border: 2px solid var(--border-color);
+  border-bottom: 4px solid var(--border-color);
+  border-radius: 14px;
+  color: var(--text-secondary);
+  font-family: var(--font-header);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 12px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.social-profile-close:hover { filter: brightness(1.2); }
+
+/* ── Empty Feed ── */
+.social-empty-feed {
+  text-align: center;
+  padding: 30px 20px;
+  color: var(--text-hint);
+  font-family: var(--font-header);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ============================================================
+   END — Social Tab v2 Twitter Features (inder branch)
+   ============================================================ */
 
 
 /* ============================================================
