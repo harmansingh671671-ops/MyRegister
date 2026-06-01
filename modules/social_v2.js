@@ -562,11 +562,6 @@ export function renderSocial(container) {
     const unread = unreadCount(data.notifications);
     const activeHoursAgo = data.friends.filter(f => f.streak > 0).length;
 
-    // Calculate leaderboard rank
-    const myEntry = { name: profile.name || 'You', streak: profile.streak || 0, isMe: true };
-    const all = [...data.friends, myEntry].sort((a, b) => b.streak - a.streak);
-    const myRank = all.findIndex(f => f.isMe) + 1;
-
     container.innerHTML = `
       <div class="social-view">
 
@@ -582,10 +577,6 @@ export function renderSocial(container) {
             🔔
             ${unread > 0 ? `<span class="social-bell-badge">${unread}</span>` : ''}
           </button>
-        </div>
-
-        <div class="view-progress-pill" style="margin-bottom: 16px;">
-          <span>Weekly Leaderboard Standing: <strong>🏆 Rank #${myRank}</strong></span>
         </div>
 
         <!-- Notification Panel (hidden by default) -->

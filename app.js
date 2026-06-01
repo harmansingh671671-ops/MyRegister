@@ -7,7 +7,7 @@ import { renderShop, syncAppTheme } from './modules/shop.js';
 import { renderSettings } from './modules/settings.js';
 import { requestNotificationPermission, showToast } from './modules/notifications.js';
 import { calculateMilitaryRank, openRanksModal, RANKS } from './modules/ranks.js';
-import { renderSocial } from './modules/social.js'; // inder branch: Social Tab
+import { renderSocial } from './modules/social_v2.js'; // inder branch: Social Tab
 import { renderLearn } from './modules/learn.js';   // inder branch: Learn Tab
 
 document.addEventListener('DOMContentLoaded', () => {
