@@ -7,6 +7,8 @@ import { renderShop, syncAppTheme } from './modules/shop.js';
 import { renderSettings } from './modules/settings.js';
 import { requestNotificationPermission, showToast } from './modules/notifications.js';
 import { calculateMilitaryRank, openRanksModal, RANKS } from './modules/ranks.js';
+import { renderSocial } from './modules/social.js'; // inder branch: Social Tab
+import { renderLearn } from './modules/learn.js';   // inder branch: Learn Tab
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -47,7 +49,9 @@ document.addEventListener('DOMContentLoaded', () => {
       path: document.getElementById('view-path'),
       stats: document.getElementById('view-stats'),
       shop: document.getElementById('view-shop'),
-      settings: document.getElementById('view-settings')
+      settings: document.getElementById('view-settings'),
+      social: document.getElementById('view-social'),   // inder branch: Social Tab
+      learn:  document.getElementById('view-learn')      // inder branch: Learn Tab
     };
 
     const navLinks = document.querySelectorAll('.nav-link');
@@ -111,6 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
             break;
           case 'settings':
             renderSettings(views.settings);
+            break;
+          case 'social': // inder branch: Social Tab
+            renderSocial(views.social);
+            break;
+          case 'learn': // inder branch: Learn Tab
+            renderLearn(views.learn);
             break;
         }
 
