@@ -3,9 +3,16 @@ import { showConfirm } from './notifications.js';
 import { renderIntegrityPanel } from './integrity.js';
 
 export function renderSettings(container) {
+  const profile = getProfile();
+  const maxStreak = profile.highestStreak || profile.streak || 0;
+
   container.innerHTML = `
     <div class="view-header">
-      <h2>⚙️ Settings & Configuration</h2>
+      <h2 class="view-main-title">⚙️ Settings</h2>
+      <p class="view-main-sub">Configure account preferences, customize schedule reasons, and backup logs</p>
+      <div class="view-progress-pill">
+        <span>Highest Streak Record: <strong>🔥 ${maxStreak} days</strong></span>
+      </div>
     </div>
 
     <div class="settings-layout-grid">

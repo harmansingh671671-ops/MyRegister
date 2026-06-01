@@ -144,13 +144,23 @@ export function renderPath(container) {
     <!-- Trophy Weekly Report Modal -->
     <div id="trophy-modal" class="fullscreen-modal hidden">
       <div class="modal-backdrop" id="trophy-backdrop"></div>
-      <div class="modal-card card-3d animate-pop" style="max-width: 440px; padding: 30px;">
-        <span style="font-size:70px; display:block; margin-bottom:15px; animation: floatAvatar 1.5s ease-in-out infinite alternate;">🏆</span>
-        <h3 id="trophy-modal-title" style="font-family:var(--font-header); font-size:24px; margin-bottom:10px;">Week Review</h3>
-        <div id="trophy-modal-body" style="font-size:14px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px; text-align:left;">
+      <div class="modal-card day-details-card card-3d animate-pop" id="trophy-modal-content">
+        <div class="modal-hero" style="background: linear-gradient(135deg, #ffc800 0%, #ff9600 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+          <button class="btn-back" id="close-trophy-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <div>
+            <span class="modal-date-title" id="trophy-modal-title" style="margin: 0; font-size: 16px; font-weight: 800; display: block; line-height: 1.2;">🏆 Weekly Summary</span>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 600;">Your Weekly Progress Report</div>
+          </div>
+        </div>
+        
+        <div class="modal-body-scroll" id="trophy-modal-body">
           <!-- Injected -->
         </div>
-        <button id="close-trophy-btn" class="btn btn-primary btn-3d btn-full btn-sm">Got it!</button>
       </div>
     </div>
   `;

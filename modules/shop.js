@@ -5,9 +5,26 @@ import { playUnlockSound } from './notifications.js';
 export function renderShop(container) {
   const profile = getProfile();
 
+  // Count customizations unlocked (19 total items in shop)
+  const totalCustomizations = 19;
+  const unlockedCount = 4 // defaults (slate theme, owl mascot, standard outfit, standard sound)
+    + (profile.unlockedThemes || []).length
+    + (profile.unlockedMascots || []).length
+    + (profile.unlockedOutfits || []).length
+    + (profile.unlockedSounds || []).length
+    + (profile.unlockedBadges || []).length;
+  const pct = Math.round((unlockedCount / totalCustomizations) * 100);
+
   container.innerHTML = `
     <div class="view-header">
-      <h2>🛒 Odyssey Shop</h2>
+      <h2 class="view-main-title">🛒 Shop</h2>
+      <p class="view-main-sub">Unlock rewards, custom themes, and accountability shields</p>
+      <div class="view-progress-pill">
+        <span>${unlockedCount} / ${totalCustomizations} customizations unlocked</span>
+        <div class="view-progress-bar">
+          <div class="view-progress-fill" style="width: ${pct}%"></div>
+        </div>
+      </div>
     </div>
 
     <div class="shop-dashboard-layout" style="display:flex; flex-direction:column; gap:16px;">

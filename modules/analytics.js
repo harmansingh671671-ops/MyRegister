@@ -6,9 +6,21 @@ export function renderAnalytics(container) {
   let activeSubTab = sessionStorage.getItem('tempo_analytics_subtab') || 'performance';
 
   const renderBaseHTML = () => {
+    const history = getAllDays();
+    const totalDays = Object.keys(history).length;
+    const reviewedDays = Object.values(history).filter(d => d.isReviewed).length;
+    const pct = totalDays > 0 ? Math.round((reviewedDays / totalDays) * 100) : 0;
+
     container.innerHTML = `
       <div class="view-header">
-        <h2>📊 Performance & Standing</h2>
+        <h2 class="view-main-title">📊 Performance</h2>
+        <p class="view-main-sub">Analyze focus history, rank progressions, and consistency trends</p>
+        <div class="view-progress-pill">
+          <span>${reviewedDays} / ${totalDays} days reviewed & locked</span>
+          <div class="view-progress-bar">
+            <div class="view-progress-fill" style="width: ${pct}%"></div>
+          </div>
+        </div>
       </div>
 
       <!-- Sub tab links -->
