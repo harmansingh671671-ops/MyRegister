@@ -218,19 +218,32 @@ body {
 .theme-red {
   --theme-color: var(--duo-red);
   --theme-color-bottom: var(--duo-red-bottom);
+  --theme-gradient: linear-gradient(135deg, #ff4b4b 0%, #ff9600 100%);
 }
 .theme-green {
   --theme-color: var(--duo-green);
   --theme-color-bottom: var(--duo-green-bottom);
+  --theme-gradient: linear-gradient(135deg, #58cc02 0%, #00cd9c 100%);
 }
 .theme-blue {
   --theme-color: var(--duo-blue);
   --theme-color-bottom: var(--duo-blue-bottom);
+  --theme-gradient: linear-gradient(135deg, #1cb0f6 0%, #7c3aed 100%);
+}
+.theme-gold {
+  --theme-color: var(--duo-gold);
+  --theme-color-bottom: var(--duo-gold-bottom);
+  --theme-gradient: linear-gradient(135deg, #ffc800 0%, #ff9600 100%);
+}
+.theme-orange {
+  --theme-color: var(--duo-orange);
+  --theme-color-bottom: var(--duo-orange-bottom);
+  --theme-gradient: linear-gradient(135deg, #ff9600 0%, #ff4b4b 100%);
 }
 
 /* Color overrides on unit banners */
 .week-section .duo-unit-banner {
-  background-color: var(--theme-color);
+  background: var(--theme-gradient, var(--theme-color));
   box-shadow: 0 6px 0 var(--theme-color-bottom);
 }
 
@@ -539,14 +552,14 @@ body {
 /* Node Color Schemes Inherited from Section Themes */
 .week-section .day-node.node-reviewed {
   background-color: var(--theme-color);
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%), var(--theme-gradient, var(--theme-color));
   box-shadow: 0 5px 0 var(--theme-color-bottom);
 }
 .week-section .day-node.node-reviewed:active { box-shadow: 0 1px 0 var(--theme-color-bottom); }
 
 .week-section .day-node.node-plan {
   background-color: var(--theme-color);
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%), var(--theme-gradient, var(--theme-color));
   box-shadow: 0 5px 0 var(--theme-color-bottom);
   filter: saturate(0.7);
 }
@@ -554,14 +567,14 @@ body {
 
 .week-section .day-node.node-committed {
   background-color: var(--theme-color);
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%), var(--theme-gradient, var(--theme-color));
   box-shadow: 0 5px 0 var(--theme-color-bottom);
 }
 .week-section .day-node.node-committed:active { box-shadow: 0 1px 0 var(--theme-color-bottom); }
 
 .week-section .day-node.node-future {
   background-color: var(--theme-color);
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 35%, transparent 35%);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 35%, transparent 35%), var(--theme-gradient, var(--theme-color));
   box-shadow: 0 5px 0 var(--theme-color-bottom);
   filter: saturate(0.6) opacity(0.85);
 }
@@ -645,7 +658,7 @@ body {
   box-shadow: 0 5px 0 var(--theme-color-bottom); /* float on top of ring */
   border: 2px solid rgba(255, 255, 255, 0.25);
   background-color: var(--theme-color);
-  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.25) 35%, transparent 35%), var(--theme-gradient, var(--theme-color));
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 

@@ -352,23 +352,23 @@ export function renderPath(container) {
     stickyTitleText.textContent = sec.name;
     stickyGuideBtn.setAttribute('data-week', sec.num);
 
-    let themeColor = 'var(--duo-red)';
+    let gradient = 'linear-gradient(135deg, #ff4b4b 0%, #ff9600 100%)';
     let themeColorBottom = 'var(--duo-red-bottom)';
     if (sec.theme === 'green') {
-      themeColor = 'var(--duo-green)';
+      gradient = 'linear-gradient(135deg, #58cc02 0%, #00cd9c 100%)';
       themeColorBottom = 'var(--duo-green-bottom)';
     } else if (sec.theme === 'blue') {
-      themeColor = 'var(--duo-blue)';
+      gradient = 'linear-gradient(135deg, #1cb0f6 0%, #7c3aed 100%)';
       themeColorBottom = 'var(--duo-blue-bottom)';
     } else if (sec.theme === 'gold') {
-      themeColor = 'var(--duo-gold)';
+      gradient = 'linear-gradient(135deg, #ffc800 0%, #ff9600 100%)';
       themeColorBottom = 'var(--duo-gold-bottom)';
     } else if (sec.theme === 'orange') {
-      themeColor = 'var(--duo-orange)';
+      gradient = 'linear-gradient(135deg, #ff9600 0%, #ff4b4b 100%)';
       themeColorBottom = 'var(--duo-orange-bottom)';
     }
     
-    stickyBanner.style.backgroundColor = themeColor;
+    stickyBanner.style.background = gradient;
     stickyBanner.style.boxShadow = `0 6px 0 ${themeColorBottom}`;
 
     // Dynamically update the top stats bar active section number
