@@ -116,24 +116,45 @@ function renderPerformanceView(container) {
   const complianceRate = overallTotal > 0 ? Math.round((overallCompleted / overallTotal) * 100) : 0;
 
   container.innerHTML = `
-    <!-- Stats Summary Pills -->
+    <!-- Stats Summary Rows -->
     <div class="analytics-summary-grid">
       <div class="card card-3d stat-summary-card">
-        <h3>Compliance Rate</h3>
-        <div class="stat-large">${complianceRate}%</div>
-        <p class="hint">Completed planned blocks over the last 7 days.</p>
+        <div class="stat-left">
+          <div class="stat-icon-wrapper" style="background: rgba(88, 204, 2, 0.15); color: var(--duo-green);">📈</div>
+          <div class="stat-info">
+            <h4>Compliance Rate</h4>
+            <span class="stat-description">Planned completions over the last 7 days</span>
+          </div>
+        </div>
+        <div class="stat-right">
+          <div class="stat-large">${complianceRate}%</div>
+        </div>
       </div>
 
       <div class="card card-3d stat-summary-card">
-        <h3>Avg Sleep Duration</h3>
-        <div class="stat-large" id="avg-sleep-val">0h</div>
-        <p class="hint">Ideal: 7-8h per night. Sleep drives deep focus.</p>
+        <div class="stat-left">
+          <div class="stat-icon-wrapper" style="background: rgba(28, 176, 246, 0.15); color: var(--duo-blue);">💤</div>
+          <div class="stat-info">
+            <h4>Avg Sleep Duration</h4>
+            <span class="stat-description">Recommended: 7-8 hours per night</span>
+          </div>
+        </div>
+        <div class="stat-right">
+          <div class="stat-large" id="avg-sleep-val">0h</div>
+        </div>
       </div>
 
       <div class="card card-3d stat-summary-card">
-        <h3>Primary Focus</h3>
-        <div class="stat-large" id="primary-focus-val">None</div>
-        <p class="hint">The task category where you spent the most planned time.</p>
+        <div class="stat-left">
+          <div class="stat-icon-wrapper" style="background: rgba(255, 150, 0, 0.15); color: var(--duo-orange);">🎯</div>
+          <div class="stat-info">
+            <h4>Primary Focus</h4>
+            <span class="stat-description">Most time-allocated category</span>
+          </div>
+        </div>
+        <div class="stat-right">
+          <div class="stat-large" id="primary-focus-val">None</div>
+        </div>
       </div>
     </div>
 
