@@ -9,7 +9,6 @@ export function renderAnalytics(container) {
     container.innerHTML = `
       <div class="view-header">
         <h2>📊 Performance & Standing</h2>
-        <p class="subtitle">Analyze routine compliance, climb the leagues, and review skipped task dynamics.</p>
       </div>
 
       <!-- Sub tab links -->
@@ -369,7 +368,6 @@ function renderIntegrityView(container) {
     <!-- Glowing Heatmap Calendar Grid -->
     <div class="card card-3d heatmap-card">
       <h3>⛓️ \"Don't Break the Chain\" Heatmap</h3>
-      <p class="hint">Visual grid representing compliance metrics for the last 30 calendar days. Keep the green glowing chain unbroken!</p>
       
       <div class="heatmap-grid-layout">
         ${cells.map(c => {
@@ -422,7 +420,6 @@ function renderIntegrityView(container) {
     <!-- Skip Reason Analysis Card -->
     <div class="card card-3d skip-analysis-card">
       <h3>📊 Skip Reason Analysis</h3>
-      <p class="hint">Categorizes the self-reported excuses logged when blocks diverged from the plan.</p>
       
       <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:bold; font-size:12px;">
         <span>Blocks completed: <span style="color:var(--duo-green); font-size:14px;">${totalCompleted}</span></span>

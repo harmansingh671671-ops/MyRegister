@@ -6,14 +6,12 @@ export function renderSettings(container) {
   container.innerHTML = `
     <div class="view-header">
       <h2>⚙️ Settings & Configuration</h2>
-      <p class="subtitle">Customize accountability reasons and manage local database backups.</p>
     </div>
 
     <div class="settings-layout-grid">
       <!-- Left Box: Profile Card -->
       <div class="card card-3d">
         <h3>👤 Account Profile</h3>
-        <p class="hint">Your personal details and priority goals saved in this local profile.</p>
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div><strong>Name:</strong> <span id="profile-display-name"></span></div>
           <div><strong>Date of Birth:</strong> <span id="profile-display-dob"></span></div>
@@ -31,7 +29,6 @@ export function renderSettings(container) {
       <!-- Center Box: Custom Reasons -->
       <div class="card card-3d">
         <h3>🧠 Custom Miss Reasons</h3>
-        <p class="hint">Create reasons you actually experience. This removes app judgment and keeps reflection highly personal.</p>
         
         <div class="settings-reasons-wrapper">
           <ul id="settings-reasons-list" class="reasons-list-ui">
@@ -48,7 +45,9 @@ export function renderSettings(container) {
       <!-- Right Box: Data Controls -->
       <div class="card card-3d">
         <h3>📂 Data Ownership & Privacy</h3>
-        <p class="hint">Download or restore all database records. Odyssey runs entirely in your sandbox browser.</p>
+        <div class="privacy-note-badge" style="background: var(--bg-hover); border: 2px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 16px;">
+          <span>🔒 Runs 100% locally in your browser sandbox.</span>
+        </div>
         
         <div class="settings-backup-controls" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
           <button id="settings-export-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
