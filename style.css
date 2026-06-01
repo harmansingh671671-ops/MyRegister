@@ -760,14 +760,9 @@ body {
 
 /* --- UNIFIED DAY MODAL (SLIDE UP) --- */
 .day-details-card {
-  width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding: 16px;
-  border-radius: 0;
-  border: none;
 }
 
 .modal-header-row {
@@ -788,7 +783,7 @@ body {
 .modal-body-scroll {
   flex-grow: 1;
   overflow-y: auto;
-  padding-right: 6px;
+  padding: 16px 20px 24px;
   scrollbar-width: thin;
   scrollbar-color: var(--border-color) transparent;
 }
@@ -881,7 +876,7 @@ body {
   inset: 0;
   z-index: 100;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
 }
 
@@ -895,8 +890,15 @@ body {
 .modal-card {
   position: relative;
   background-color: var(--bg-surface);
-  border-radius: 28px;
+  border-radius: 24px 24px 0 0;
   z-index: 10;
+  width: 100%;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 2px solid var(--border-color);
+  border-bottom: none;
 }
 
 /* Sparkle popped chimes */

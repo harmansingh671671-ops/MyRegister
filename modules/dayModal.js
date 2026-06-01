@@ -63,18 +63,52 @@ function renderModalContent(dateStr, container, closeFn) {
   const slots = dayLog.slots;
 
   // Render the structural outer template
+  const scheduled = slots.slice(1).filter(s => s.text && s.text.trim() !== "");
+  const completed = scheduled.filter(s => s.status === 'completed').length;
+  const rate = scheduled.length > 0 ? Math.round((completed / scheduled.length) * 100) : 0;
+
+  let heroGradient = 'linear-gradient(135deg, #1cb0f6 0%, #1899d6 100%)';
+  let statusText = "Today's Agenda";
+
+  if (isFuture) {
+    if (isTomorrow) {
+      heroGradient = 'linear-gradient(135deg, #00cd9c 0%, #1cb0f6 100%)';
+      statusText = "Planning Tomorrow";
+    } else {
+      heroGradient = 'linear-gradient(135deg, #4b5563 0%, #1f2937 100%)';
+      statusText = "Future Schedule";
+    }
+  } else if (isPast) {
+    if (scheduled.length === 0) {
+      heroGradient = 'linear-gradient(135deg, #a1a8a9 0%, #4f585a 100%)';
+      statusText = "No Tasks Scheduled";
+    } else if (rate === 100) {
+      heroGradient = 'linear-gradient(135deg, #58cc02 0%, #46a302 100%)';
+      statusText = "100% Perfect Completion";
+    } else if (rate > 0) {
+      heroGradient = 'linear-gradient(135deg, #ff9600 0%, #e68500 100%)';
+      statusText = `${rate}% Tasks Completed`;
+    } else {
+      heroGradient = 'linear-gradient(135deg, #ff4b4b 0%, #ea2b2b 100%)';
+      statusText = "0% Tasks Completed";
+    }
+  }
+
   container.innerHTML = `
-    <div class="modal-header-row" style="justify-content: flex-start; gap: 12px;">
-      <button class="btn-back" id="modal-close-btn" aria-label="Go back">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <div class="modal-hero" style="background: ${heroGradient}; color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+      <button class="btn-back" id="modal-close-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
           <line x1="19" y1="12" x2="5" y2="12"></line>
           <polyline points="12 19 5 12 12 5"></polyline>
         </svg>
       </button>
-      <span class="modal-date-title" style="margin: 0; text-align: left;">📅 ${displayTitle}</span>
+      <div>
+        <span class="modal-date-title" style="margin: 0; font-size: 16px; font-weight: 800; display: block; line-height: 1.2;">📅 ${displayTitle}</span>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 600;">${statusText}</div>
+      </div>
     </div>
     
-    <div id="modal-body-container" class="modal-body-scroll" style="padding-top: 10px;">
+    <div id="modal-body-container" class="modal-body-scroll">
       
       <!-- Interactive Mascot Coach Header -->
       <div id="modal-mascot-container" style="margin-bottom: 15px;"></div>

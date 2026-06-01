@@ -150,13 +150,31 @@ export function openRanksModal() {
   // Close handlers
   modal.querySelector('#ranks-modal-backdrop').onclick = closeModal;
 
+  // Determine dynamic gradient based on Division
+  let heroGradient = 'linear-gradient(135deg, #a77044 0%, #734a26 100%)'; // Starter (Bronze)
+  if (currentRank.division === 'Junior') {
+    heroGradient = 'linear-gradient(135deg, #a1a8a9 0%, #4f585a 100%)'; // Junior (Silver)
+  } else if (currentRank.division === 'Senior') {
+    heroGradient = 'linear-gradient(135deg, #ffc800 0%, #ff9600 100%)'; // Senior (Gold)
+  } else if (currentRank.division === 'Elite') {
+    heroGradient = 'linear-gradient(135deg, #4c1d95 0%, #1cb0f6 100%)'; // Elite (Royal Blue/Purple)
+  }
+
   content.innerHTML = `
-    <div class="modal-header-row">
-      <span class="modal-date-title">🎖️ Military Rank Standings</span>
-      <button class="btn-close" id="ranks-close-btn">&times;</button>
+    <div class="modal-hero" style="background: ${heroGradient}; color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+      <button class="btn-back" id="ranks-close-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"></line>
+          <polyline points="12 19 5 12 12 5"></polyline>
+        </svg>
+      </button>
+      <div>
+        <span class="modal-date-title" style="margin: 0; font-size: 16px; font-weight: 800; display: block; line-height: 1.2;">🎖️ Rank Standings</span>
+        <div style="font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 600;">Your active standing: ${currentRankName}</div>
+      </div>
     </div>
     
-    <div class="modal-body-scroll" style="padding: 10px 0;">
+    <div class="modal-body-scroll" style="padding-top: 10px;">
       <!-- Active Rank Card -->
       <div class="card card-3d" style="background: linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-hover) 100%); margin-bottom: 16px; padding: 20px; text-align: center; border-color: var(--duo-gold);">
         <div style="font-size: 45px; margin-bottom: 4px;">${currentRank.badge}</div>
