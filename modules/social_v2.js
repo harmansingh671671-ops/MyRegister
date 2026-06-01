@@ -367,10 +367,6 @@ function renderPostCard(post, isOwn = false) {
   `;
 }
 
-    </div>
-  `;
-}
-
 function renderFriendChip(friend) {
   return `
     <div class="social-friend-chip" data-friend-id="${friend.id}">
