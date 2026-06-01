@@ -40,29 +40,28 @@ export function renderSettings(container) {
             <button type="submit" class="btn btn-primary btn-3d">Add</button>
           </form>
         </div>
-      </div>
-
-      <!-- Right Box: Data Controls -->
-      <div class="card card-3d">
-        <h3>📂 Data Ownership & Privacy</h3>
-        <div class="privacy-note-badge" style="background: var(--bg-hover); border: 2px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 16px;">
-          <span>🔒 Runs 100% locally in your browser sandbox.</span>
-        </div>
-        
-        <div class="settings-backup-controls" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
-          <button id="settings-export-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
-          
-          <div class="import-wrapper">
-            <label for="settings-import-input" class="btn btn-secondary btn-3d btn-full btn-import-label">⬆️ Import Backup</label>
-            <input type="file" id="settings-import-input" accept=".json" style="display: none;">
-          </div>
-
-          <button id="settings-wipe-btn" class="btn btn-danger btn-3d btn-full btn-sm">🗑️ Permanently Wipe All Data</button>
-        </div>
-      </div>
     </div>
     <!-- Device Integrity Simulator -->
     <div id="settings-integrity-container" style="margin-top: 20px;"></div>
+
+    <!-- Bottom Box: Data Controls -->
+    <div class="card card-3d" style="margin-top: 20px;">
+      <h3>📂 Data Ownership & Privacy</h3>
+      <div class="privacy-note-badge" style="background: var(--bg-hover); border: 2px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 16px;">
+        <span>🔒 Runs 100% locally in your browser sandbox.</span>
+      </div>
+      
+      <div class="settings-backup-controls" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+        <button id="settings-export-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
+        
+        <div class="import-wrapper">
+          <label for="settings-import-input" class="btn btn-secondary btn-3d btn-full btn-import-label">⬆️ Import Backup</label>
+          <input type="file" id="settings-import-input" accept=".json" style="display: none;">
+        </div>
+
+        <button id="settings-wipe-btn" class="btn btn-danger btn-3d btn-full btn-sm">🗑️ Permanently Wipe All Data</button>
+      </div>
+    </div>
   `;
 
   const listContainer = container.querySelector('#settings-reasons-list');
