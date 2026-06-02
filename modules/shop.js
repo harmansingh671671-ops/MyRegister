@@ -5,8 +5,8 @@ import { playUnlockSound } from './notifications.js';
 export function renderShop(container) {
   const profile = getProfile();
 
-  // Count customizations unlocked (19 total items in shop)
-  const totalCustomizations = 19;
+  // Count customizations unlocked (25 total items in shop)
+  const totalCustomizations = 25;
   const unlockedCount = 4 // defaults (slate theme, owl mascot, standard outfit, standard sound)
     + (profile.unlockedThemes || []).length
     + (profile.unlockedMascots || []).length
@@ -90,6 +90,12 @@ export function renderShop(container) {
           ${renderCosmeticItem("Outfit", "suit", "unlockedOutfits", "Suit & Tie", "👔", 15, profile)}
           ${renderCosmeticItem("Outfit", "astronaut", "unlockedOutfits", "Astronaut Suit", "🧑‍🚀", 20, profile)}
           ${renderCosmeticItem("Outfit", "visor", "unlockedOutfits", "Cyberpunk Visor", "🕶️", 20, profile)}
+          ${renderCosmeticItem("Outfit", "ninja", "unlockedOutfits", "Ninja Suit", "🥷", 25, profile)}
+          ${renderCosmeticItem("Outfit", "cowboy", "unlockedOutfits", "Cowboy Hat", "🤠", 25, profile)}
+          ${renderCosmeticItem("Outfit", "wizard", "unlockedOutfits", "Wizard Robe", "🧙", 30, profile)}
+          ${renderCosmeticItem("Outfit", "detective", "unlockedOutfits", "Detective Coat", "🕵️", 20, profile)}
+          ${renderCosmeticItem("Outfit", "chef", "unlockedOutfits", "Chef Hat", "🧑‍🍳", 20, profile)}
+          ${renderCosmeticItem("Outfit", "superhero", "unlockedOutfits", "Superhero Cape", "🦸", 30, profile)}
         </div>
       </div>
 

@@ -93,7 +93,7 @@ function validateProfile(profile) {
   validated.equippedMascot = ['owl', 'bear', 'cat'].includes(profile.equippedMascot) ? profile.equippedMascot : 'owl';
   
   validated.unlockedOutfits = Array.isArray(profile.unlockedOutfits) ? profile.unlockedOutfits : ['none'];
-  validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor'].includes(profile.equippedOutfit) ? profile.equippedOutfit : 'none';
+  validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor', 'ninja', 'cowboy', 'wizard', 'detective', 'chef', 'superhero'].includes(profile.equippedOutfit) ? profile.equippedOutfit : 'none';
   
   validated.unlockedSounds = Array.isArray(profile.unlockedSounds) ? profile.unlockedSounds : ['default'];
   validated.equippedSound = ['default', 'scifi', 'zen', 'retro'].includes(profile.equippedSound) ? profile.equippedSound : 'default';
@@ -327,9 +327,20 @@ export function saveDay(dateStr, dayLog) {
     // Map slots to blocks for compatibility
     dayLog.blocks = mapSlotsToBlocks(dayLog.slots);
     
+// Import XP reward function
+import { addXp } from './gamification.js';
+
     // Automatically set isCommitted if there is any scheduled hourly text
     if (Array.isArray(dayLog.slots)) {
       dayLog.isCommitted = dayLog.slots.slice(1).some(s => s && typeof s.text === 'string' && s.text.trim() !== "");
+      if (dayLog.isCommitted) {
+        // Reward 10 XP for creating a schedule
+        try {
+          addXp(10);
+        } catch (e) {
+          console.error('Failed to add XP:', e);
+        }
+      }
     }
 
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
@@ -554,6 +565,25 @@ export function autoLockPastDays() {
     }
   } catch (e) {
     console.error('Error auto locking past days:', e);
+  }
+}
+
+export function getSocialData() {
+  try {
+    const raw = localStorage.getItem('tempo_social_feed');
+    if (!raw) return { friends: [], posts: [], notifications: [] };
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('[Storage] Error reading social data:', e);
+    return { friends: [], posts: [], notifications: [] };
+  }
+}
+
+export function saveSocialData(data) {
+  try {
+    localStorage.setItem('tempo_social_feed', JSON.stringify(data));
+  } catch (e) {
+    console.error('[Storage] Error saving social data:', e);
   }
 }
 

@@ -1,83 +1,93 @@
 // modules/social.js
-// Inder's Feature: Twitter-Style Social Tab (v2)
-// Feed tabs, notification bell, profile cards, leaderboard, replies, repost
-// All data stored via getProfile/saveProfile or dedicated localStorage key
-// No direct localStorage outside of getSocialData/saveSocialData helpers
-// All functions wrapped in try-catch
+// Kushal's Feature: Finch-style Social Tab (Squad feed, activity check-ins, custom vibes and mascot reactions)
+// All data stored via storage.js interface functions (getProfile, saveProfile, getSocialData, saveSocialData)
+// All functions wrapped in try-catch blocks to prevent browser errors.
 
-import { getProfile, saveProfile } from './storage.js';
+import { getProfile, saveProfile, getSocialData, saveSocialData } from './storage.js';
 import { getMascotReaction } from './mascot.js';
 
-// ─── DEMO DATA ────────────────────────────────────────────────────────────────
+// ─── DEMO DATA SEEDING ────────────────────────────────────────────────────────
 
 const DEMO_FRIENDS = [
-  { id: 'demo_maya',  name: 'Maya',  mascot: '🐻', streak: 14, level: 5,  outfit: '🧑‍🚀', rank: 'Sergeant',  bio: 'Morning person. Deep work addict. 🎯' },
-  { id: 'demo_arjun', name: 'Arjun', mascot: '🐱', streak: 7,  level: 3,  outfit: '👔',    rank: 'Corporal',  bio: 'Gym + Code every day. No excuses 💪' },
-  { id: 'demo_priya', name: 'Priya', mascot: '🦉', streak: 21, level: 8,  outfit: '🥷',   rank: 'Lieutenant', bio: '21-day streak queen. Sleep 8hrs minimum 🌙' }
+  { id: 'demo_maya',  name: 'Maya',  mascot: '🐻', streak: 14, level: 5,  outfit: '🤠', rank: 'Sergeant',  bio: 'Morning person. Deep work addict. Yeehaw! 🤠' },
+  { id: 'demo_arjun', name: 'Arjun', mascot: '🐱', streak: 7,  level: 3,  outfit: '🦸', rank: 'Corporal',  bio: 'Gym + Code every day. Defeating procrastination! ⚡' },
+  { id: 'demo_priya', name: 'Priya', mascot: '🦉', streak: 21, level: 8,  outfit: '🥷', rank: 'Lieutenant', bio: 'Quiet focus, massive results. 🥷' }
 ];
 
 const DEMO_POSTS = [
   {
-    id: 'post_d1', authorId: 'demo_maya', authorName: 'Maya', authorMascot: '🐻', authorOutfit: '🧑‍🚀',
-    text: 'Crushed my morning study block! 3 hours of deep focus 🎯', mood: '🔥',
+    id: 'post_d1', authorId: 'demo_maya', authorName: 'Maya', authorMascot: '🐻', authorOutfit: '🤠',
+    activity: 'Study 📚', text: 'Crushed my morning study block! 3 hours of deep focus 🎯', mood: '🔥',
     timestamp: Date.now() - 1000 * 60 * 47,
-    reactions: { '🔥': 3, '💪': 1 }, replies: [
+    vibes: { hug: 2, highfive: 3, cheer: 1 }, replies: [
       { authorName: 'Priya', authorMascot: '🦉', text: 'Absolutely 🔥 Keep going!', timestamp: Date.now() - 1000 * 60 * 30 }
     ]
   },
   {
     id: 'post_d2', authorId: 'demo_priya', authorName: 'Priya', authorMascot: '🦉', authorOutfit: '🥷',
-    text: '21-day streak hit! Nothing can stop me now 🌟', mood: '🌟',
+    activity: 'Focus 🎯', text: '21-day streak hit! Nothing can stop me now 🌟', mood: '🌟',
     timestamp: Date.now() - 1000 * 60 * 60 * 2,
-    reactions: { '❤️': 5, '🔥': 4, '🎉': 2 }, replies: []
+    vibes: { cheer: 5, flex: 4, goodvibes: 2 }, replies: []
   },
   {
-    id: 'post_d3', authorId: 'demo_arjun', authorName: 'Arjun', authorMascot: '🐱', authorOutfit: '👔',
-    text: 'Took a rest day today. Sometimes recovery is the plan 😌', mood: '😌',
+    id: 'post_d3', authorId: 'demo_arjun', authorName: 'Arjun', authorMascot: '🐱', authorOutfit: '🦸',
+    activity: 'Sleep 🛌', text: 'Took a rest day today. Recovery sleep is key 😌', mood: '😌',
     timestamp: Date.now() - 1000 * 60 * 60 * 5,
-    reactions: { '❤️': 2, '💙': 1 }, replies: []
+    vibes: { hug: 1, hydrate: 2 }, replies: []
   }
 ];
 
 const DEMO_NOTIFICATIONS = [
-  { id: 'n1', icon: '🔥', text: 'Maya reacted 🔥 to your check-in', time: Date.now() - 1000 * 60 * 20, read: false },
-  { id: 'n2', icon: '🎉', text: 'Priya hit a 21-day streak! Congratulate her 🏆', time: Date.now() - 1000 * 60 * 60, read: false },
-  { id: 'n3', icon: '👥', text: 'Arjun just posted a check-in', time: Date.now() - 1000 * 60 * 60 * 3, read: true },
-  { id: 'n4', icon: '🔔', text: 'You\'re on a 3-day streak! Keep it up 🔥', time: Date.now() - 1000 * 60 * 60 * 5, read: true }
+  { id: 'n1', icon: '🫂', text: 'Maya sent you a Hug vibe on your check-in!', time: Date.now() - 1000 * 60 * 20, read: false },
+  { id: 'n2', icon: '🖐️', text: 'Arjun sent you a High Five vibe! 🏆', time: Date.now() - 1000 * 60 * 60, read: false },
+  { id: 'n3', icon: '👥', text: 'Priya hit a 21-day streak! Congratulate her! 🎉', time: Date.now() - 1000 * 60 * 60 * 3, read: true }
 ];
 
-const MOOD_OPTIONS     = ['🔥', '😴', '🎯', '💪', '😤', '🌟', '😌', '🎉'];
-const REACTION_OPTIONS = ['🔥', '❤️', '💪', '🎉', '💙', '😲', '🤝'];
+const VIBE_TYPES = {
+  hug: { emoji: '🫂', label: 'Hug', color: '#ff7eb9' },
+  highfive: { emoji: '🖐️', label: 'High Five', color: '#ff9f43' },
+  cheer: { emoji: '🎉', label: 'Cheer', color: '#a55eea' },
+  flex: { emoji: '💪', label: 'Flex', color: '#20bf6b' },
+  hydrate: { emoji: '💧', label: 'Hydrate', color: '#0984e3' },
+  goodvibes: { emoji: '✨', label: 'Good Vibes', color: '#fdcb6e' }
+};
 
-// ─── STORAGE HELPERS ──────────────────────────────────────────────────────────
+const ACTIVITY_CATEGORIES = [
+  { label: 'Focus 🎯', val: 'Focus 🎯' },
+  { label: 'Study 📚', val: 'Study 📚' },
+  { label: 'Gym 🏋️', val: 'Gym 🏋️' },
+  { label: 'Sleep 🛌', val: 'Sleep 🛌' },
+  { label: 'Meditate 🧘', val: 'Meditate 🧘' },
+  { label: 'Code 💻', val: 'Code 💻' },
+  { label: 'Read 📖', val: 'Read 📖' },
+  { label: 'Work 💼', val: 'Work 💼' },
+  { label: 'Run 🏃', val: 'Run 🏃' }
+];
 
-function getSocialData() {
-  try {
-    const raw = localStorage.getItem('tempo_social_feed');
-    if (!raw) return { friends: [], posts: [], notifications: [] };
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('[Social] Error reading social data:', e);
-    return { friends: [], posts: [], notifications: [] };
-  }
-}
-
-function saveSocialData(data) {
-  try {
-    localStorage.setItem('tempo_social_feed', JSON.stringify(data));
-  } catch (e) {
-    console.error('[Social] Error saving social data:', e);
-  }
-}
+const MOOD_OPTIONS = ['🔥', '😴', '🎯', '💪', '😤', '🌟', '😌', '🎉'];
 
 function seedDemoData() {
   try {
     const data = getSocialData();
-    if (data.friends.length === 0) data.friends = [...DEMO_FRIENDS];
-    if (data.posts.length === 0)   data.posts   = [...DEMO_POSTS];
-    if (!data.notifications || data.notifications.length === 0) data.notifications = [...DEMO_NOTIFICATIONS];
-    saveSocialData(data);
-  } catch (e) { console.error('[Social] Seed error:', e); }
+    let updated = false;
+    if (!data.friends || data.friends.length === 0) {
+      data.friends = [...DEMO_FRIENDS];
+      updated = true;
+    }
+    if (!data.posts || data.posts.length === 0) {
+      data.posts = [...DEMO_POSTS];
+      updated = true;
+    }
+    if (!data.notifications || data.notifications.length === 0) {
+      data.notifications = [...DEMO_NOTIFICATIONS];
+      updated = true;
+    }
+    if (updated) {
+      saveSocialData(data);
+    }
+  } catch (e) {
+    console.error('[Social] Error seeding demo data:', e);
+  }
 }
 
 // ─── UTILITIES ────────────────────────────────────────────────────────────────
@@ -91,80 +101,92 @@ function formatTimeAgo(ts) {
     const hrs = Math.floor(mins / 60);
     if (hrs < 24)  return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
-  } catch (e) { return ''; }
+  } catch (e) {
+    return '';
+  }
 }
 
 function generateId() {
-  return 'post_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  try {
+    return 'post_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  } catch (e) {
+    return 'post_' + Date.now();
+  }
 }
 
 function unreadCount(notifications) {
-  return (notifications || []).filter(n => !n.read).length;
-}
-
-// ─── TRENDING ─────────────────────────────────────────────────────────────────
-
-function getTrendingTopics(posts) {
   try {
-    const counts = {};
-    const keywords = ['study', 'gym', 'workout', 'sleep', 'read', 'code', 'work', 'run', 'meditat', 'focus', 'morning'];
-    posts.forEach(p => {
-      const lower = p.text.toLowerCase();
-      keywords.forEach(kw => {
-        if (lower.includes(kw)) counts[kw] = (counts[kw] || 0) + 1;
-      });
-      if (p.mood) counts[p.mood] = (counts[p.mood] || 0) + 1;
-    });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  } catch (e) { return []; }
+    return (notifications || []).filter(n => !n.read).length;
+  } catch (e) {
+    return 0;
+  }
 }
 
 // ─── ACTIONS ──────────────────────────────────────────────────────────────────
 
-function postCheckIn(text, mood) {
+function postCheckIn(text, activity, mood) {
   try {
     const profile = getProfile();
     const data = getSocialData();
     const mascotEmojis = { owl: '🦉', bear: '🐻', cat: '🐱' };
-    const outfitEmojis = { none: '', suit: '👔', astronaut: '🧑‍🚀', visor: '🕶️', ninja: '🥷', cowboy: '🤠', wizard: '🧙' };
+    const outfitEmojis = {
+      none: '', suit: '👔', astronaut: '🧑‍🚀', visor: '🕶️',
+      ninja: '🥷', cowboy: '🤠', wizard: '🧙', detective: '🕵️',
+      chef: '🧑‍🍳', superhero: '🦸'
+    };
+
     const newPost = {
       id: generateId(),
       authorId: 'me',
       authorName: profile.name || 'You',
       authorMascot: mascotEmojis[profile.equippedMascot] || '🦉',
       authorOutfit: outfitEmojis[profile.equippedOutfit] || '',
+      activity: activity || 'Focus 🎯',
       text: text.trim().substring(0, 200),
       mood: mood || '🎯',
       timestamp: Date.now(),
-      reactions: {},
+      vibes: {},
       replies: []
     };
+
     data.posts.unshift(newPost);
     if (data.posts.length > 50) data.posts = data.posts.slice(0, 50);
-    // Add a notification when friends react (simulate)
-    data.notifications = data.notifications || [];
+
     saveSocialData(data);
     return newPost;
-  } catch (e) { console.error('[Social] Post error:', e); return null; }
+  } catch (e) {
+    console.error('[Social] Post error:', e);
+    return null;
+  }
 }
 
-function reactToPost(postId, emoji) {
+function sendVibeToPost(postId, vibeType) {
   try {
     const data = getSocialData();
     const post = data.posts.find(p => p.id === postId);
-    if (!post) return;
-    if (!post.reactions[emoji]) post.reactions[emoji] = 0;
-    post.reactions[emoji]++;
+    if (!post) return 0;
+
+    if (!post.vibes) post.vibes = {};
+    if (!post.vibes[vibeType]) post.vibes[vibeType] = 0;
+    post.vibes[vibeType]++;
+
+    // If it's a friend's post, simulate adding a notification for them
+    // If it's own post, it also saves correctly
     saveSocialData(data);
-  } catch (e) { console.error('[Social] React error:', e); }
+    return post.vibes[vibeType];
+  } catch (e) {
+    console.error('[Social] Send vibe error:', e);
+    return 0;
+  }
 }
 
-function addReply(postId, replyText) {
+function addReplyToPost(postId, replyText) {
   try {
     const profile = getProfile();
     const data = getSocialData();
     const post = data.posts.find(p => p.id === postId);
     if (!post) return null;
+
     const mascotEmojis = { owl: '🦉', bear: '🐻', cat: '🐱' };
     const reply = {
       id: 'reply_' + Date.now(),
@@ -173,36 +195,16 @@ function addReply(postId, replyText) {
       text: replyText.trim().substring(0, 140),
       timestamp: Date.now()
     };
+
     if (!post.replies) post.replies = [];
     post.replies.push(reply);
+
     saveSocialData(data);
     return reply;
-  } catch (e) { console.error('[Social] Reply error:', e); return null; }
-}
-
-function repostPost(post) {
-  try {
-    const profile = getProfile();
-    const data = getSocialData();
-    const mascotEmojis = { owl: '🦉', bear: '🐻', cat: '🐱' };
-    const outfitEmojis = { none: '', suit: '👔', astronaut: '🧑‍🚀', visor: '🕶️', ninja: '🥷', cowboy: '🤠', wizard: '🧙' };
-    const repost = {
-      id: generateId(),
-      authorId: 'me',
-      authorName: profile.name || 'You',
-      authorMascot: mascotEmojis[profile.equippedMascot] || '🦉',
-      authorOutfit: outfitEmojis[profile.equippedOutfit] || '',
-      text: post.text,
-      mood: post.mood,
-      timestamp: Date.now(),
-      reactions: {},
-      replies: [],
-      repostOf: post.authorName
-    };
-    data.posts.unshift(repost);
-    saveSocialData(data);
-    return repost;
-  } catch (e) { console.error('[Social] Repost error:', e); return null; }
+  } catch (e) {
+    console.error('[Social] Add reply error:', e);
+    return null;
+  }
 }
 
 function markAllNotificationsRead() {
@@ -210,730 +212,808 @@ function markAllNotificationsRead() {
     const data = getSocialData();
     (data.notifications || []).forEach(n => n.read = true);
     saveSocialData(data);
-  } catch (e) { console.error('[Social] Mark read error:', e); }
+  } catch (e) {
+    console.error('[Social] Mark read error:', e);
+  }
 }
 
-// ─── LIKE HELPER ─────────────────────────────────────────────────────────────
-
-function likePost(postId) {
-  try {
-    const data = getSocialData();
-    const post = data.posts.find(p => p.id === postId);
-    if (!post) return 0;
-    if (!post.likes) post.likes = 0;
-    post.likes++;
-    saveSocialData(data);
-    return post.likes;
-  } catch (e) { console.error('[Social] Like error:', e); return 0; }
-}
-
-function replyCount(post) {
-  return (post.replies || []).length;
-}
-
-function likeCount(post) {
-  return post.likes || 0;
-}
-
-function repostCount(post) {
-  return post.reposts || 0;
-}
-
-// ─── TWITTER-STYLE RENDER HELPERS ────────────────────────────────────────────
+// ─── RENDERING HELPERS ────────────────────────────────────────────────────────
 
 function renderReplies(post) {
-  const replies = post.replies || [];
-  if (replies.length === 0) return '';
-  return replies.slice(0, 3).map(r => `
-    <div class="tw-reply-row">
-      <div class="tw-reply-avatar-col">
-        <div class="tw-reply-avatar">${r.authorMascot}</div>
-      </div>
-      <div class="tw-reply-body">
-        <div class="tw-reply-header">
-          <span class="tw-reply-name">${r.authorName}</span>
-          <span class="tw-reply-time">${formatTimeAgo(r.timestamp)}</span>
+  try {
+    const replies = post.replies || [];
+    if (replies.length === 0) return '';
+    return replies.map(r => `
+      <div class="finch-reply-row">
+        <span class="finch-reply-avatar">${r.authorMascot}</span>
+        <div class="finch-reply-content">
+          <div class="finch-reply-header">
+            <span class="finch-reply-name">${r.authorName}</span>
+            <span class="finch-reply-time">${formatTimeAgo(r.timestamp)}</span>
+          </div>
+          <p class="finch-reply-text">${r.text}</p>
         </div>
-        <p class="tw-reply-text">${r.text}</p>
       </div>
-    </div>
-  `).join('') + (replies.length > 3 ? `
-    <p class="tw-show-more-replies">Show ${replies.length - 3} more replies</p>
-  ` : '');
+    `).join('');
+  } catch (e) {
+    console.error('[Social] Render replies error:', e);
+    return '';
+  }
 }
 
 function renderPostCard(post, isOwn = false) {
-  const likes    = likeCount(post);
-  const reposts  = repostCount(post);
-  const replies  = replyCount(post);
-  const safeName = post.authorName || 'User';
-  const handle   = '@' + safeName.toLowerCase().replace(/\s+/g, '');
+  try {
+    const safeName = post.authorName || 'Friend';
+    const vibes = post.vibes || {};
+    const totalVibes = Object.values(vibes).reduce((a, b) => a + b, 0);
 
-  return `
-    <div class="tw-post" data-post-id="${post.id}">
+    // Build the vibes list HTML
+    let vibesTallyHTML = '';
+    if (totalVibes > 0) {
+      vibesTallyHTML = `
+        <div class="finch-post-vibes-tally">
+          ${Object.entries(vibes).map(([vibe, count]) => {
+            if (count === 0) return '';
+            const details = VIBE_TYPES[vibe] || { emoji: '❤️' };
+            return `<span class="finch-vibe-bubble" title="${count} ${vibe} vibes sent">${details.emoji} <span class="vibe-count">${count}</span></span>`;
+          }).join('')}
+        </div>
+      `;
+    }
 
-      ${post.repostOf ? `
-        <div class="tw-repost-label">🔁 <span>${isOwn ? 'You' : post.authorName} reposted</span></div>
-      ` : ''}
-
-      <div class="tw-post-inner">
-
-        <!-- Left: Avatar column -->
-        <div class="tw-avatar-col">
-          <div class="tw-avatar social-avatar--clickable"
-               data-friend-id="${post.authorId}"
-               data-friend-name="${post.authorName}">
-            <span class="tw-avatar-mascot">${post.authorMascot}</span>
-            ${post.authorOutfit ? `<span class="tw-avatar-outfit">${post.authorOutfit}</span>` : ''}
+    return `
+      <div class="finch-post-card card-3d" data-post-id="${post.id}">
+        <div class="finch-post-header">
+          <div class="finch-avatar-wrapper social-avatar--clickable" data-friend-id="${post.authorId}">
+            <div class="finch-avatar-icon">${post.authorMascot || '🦉'}</div>
+            ${post.authorOutfit ? `<div class="finch-avatar-outfit">${post.authorOutfit}</div>` : ''}
           </div>
-          ${replies > 0 ? '<div class="tw-thread-line"></div>' : ''}
+          <div class="finch-post-meta">
+            <div class="finch-post-author-row">
+              <span class="finch-post-author-name">${safeName}</span>
+              ${isOwn ? `<span class="finch-badge-me">You</span>` : ''}
+            </div>
+            <span class="finch-post-time">${formatTimeAgo(post.timestamp)}</span>
+          </div>
+          <div class="finch-post-badge-box">
+            <span class="finch-post-activity-tag">${post.activity || 'Focus 🎯'}</span>
+            <span class="finch-post-mood-bubble">${post.mood || '🎯'}</span>
+          </div>
         </div>
 
-        <!-- Right: Content column -->
-        <div class="tw-content-col">
+        <div class="finch-post-body">
+          <p class="finch-post-text">${post.text}</p>
+        </div>
 
-          <!-- Header -->
-          <div class="tw-post-header">
-            <span class="tw-post-name">${safeName}</span>
-            <span class="tw-post-handle">${handle}</span>
-            <span class="tw-post-dot">·</span>
-            <span class="tw-post-time">${formatTimeAgo(post.timestamp)}</span>
-            <span class="tw-post-mood">${post.mood}</span>
-            ${isOwn ? '<span class="tw-you-badge">You</span>' : ''}
-          </div>
+        ${vibesTallyHTML}
 
-          <!-- Post text -->
-          <p class="tw-post-text">${post.text}</p>
-
-          <!-- Replies thread -->
-          <div class="tw-replies-thread" id="tw-replies-${post.id}">
+        <!-- Replies Section -->
+        <div class="finch-replies-section ${post.replies && post.replies.length > 0 ? '' : 'hidden'}" id="replies-box-${post.id}">
+          <div class="finch-replies-list" id="replies-list-${post.id}">
             ${renderReplies(post)}
           </div>
+        </div>
 
-          <!-- Reply composer (hidden) -->
-          <div class="tw-reply-composer hidden" id="reply-composer-${post.id}">
-            <div class="tw-reply-compose-inner">
-              <div class="tw-reply-compose-avatar">${post.authorMascot}</div>
-              <input type="text" class="tw-reply-compose-input social-reply-input"
-                     data-post-id="${post.id}"
-                     placeholder="Post your reply…"
-                     maxlength="140" />
-              <button class="tw-reply-compose-btn social-reply-submit" data-post-id="${post.id}">Reply</button>
+        <!-- Composer for comment (collapsible) -->
+        <div class="finch-comment-composer hidden" id="comment-composer-${post.id}">
+          <input type="text" placeholder="Write a supportive reply..." maxlength="140" class="finch-comment-input" data-post-id="${post.id}"/>
+          <button class="btn btn-primary btn-xs btn-3d comment-submit-btn" data-post-id="${post.id}">Send</button>
+        </div>
+
+        <!-- Interactive Actions footer -->
+        <div class="finch-post-actions">
+          <button class="finch-action-btn vibe-picker-toggle-btn" data-post-id="${post.id}">
+            <span>✨</span> Send Vibes
+          </button>
+          
+          <button class="finch-action-btn comment-toggle-btn" data-post-id="${post.id}">
+            <span>💬</span> Comment (${post.replies ? post.replies.length : 0})
+          </button>
+
+          <!-- Vibe Picker Float Box -->
+          <div class="finch-vibe-picker hidden" id="vibe-picker-${post.id}">
+            <div class="vibe-picker-inner">
+              ${Object.entries(VIBE_TYPES).map(([key, details]) => `
+                <button class="vibe-option-btn" data-post-id="${post.id}" data-vibe="${key}" style="--vibe-color: ${details.color}">
+                  <span class="vibe-opt-emoji">${details.emoji}</span>
+                  <span class="vibe-opt-label">${details.label}</span>
+                </button>
+              `).join('')}
             </div>
-          </div>
-
-          <!-- Twitter-style action bar -->
-          <div class="tw-action-bar">
-
-            <!-- Reply -->
-            <button class="tw-action-btn social-reply-toggle-btn" data-post-id="${post.id}" title="Reply">
-              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              ${replies > 0 ? `<span class="tw-action-count">${replies}</span>` : ''}
-            </button>
-
-            <!-- Repost -->
-            <button class="tw-action-btn tw-repost-action social-repost-btn" data-post-id="${post.id}" title="Repost"
-                    ${isOwn ? 'disabled' : ''}>
-              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-              </svg>
-              ${reposts > 0 ? `<span class="tw-action-count">${reposts}</span>` : ''}
-            </button>
-
-            <!-- Like (heart) -->
-            <button class="tw-action-btn tw-like-btn" data-post-id="${post.id}" title="Like">
-              <svg class="tw-action-icon tw-heart-icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              <span class="tw-action-count tw-like-count" id="tw-like-count-${post.id}">${likes > 0 ? likes : ''}</span>
-            </button>
-
-            <!-- Share -->
-            <button class="tw-action-btn" title="Share">
-              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <polyline points="16 6 12 2 8 6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-            </button>
-
           </div>
         </div>
       </div>
-    </div>
-  `;
-}
-
-    </div>
-  `;
+    `;
+  } catch (e) {
+    console.error('[Social] Render post card error:', e);
+    return '';
+  }
 }
 
 function renderFriendChip(friend) {
-  return `
-    <div class="social-friend-chip" data-friend-id="${friend.id}">
-      <div class="social-friend-avatar">
-        <span>${friend.mascot}</span>
-        ${friend.outfit ? `<span class="social-friend-outfit">${friend.outfit}</span>` : ''}
-        <span class="social-friend-online-dot"></span>
+  try {
+    return `
+      <div class="finch-friend-chip card-3d" data-friend-id="${friend.id}">
+        <div class="finch-friend-avatar">
+          <span class="avatar-mascot">${friend.mascot}</span>
+          ${friend.outfit ? `<span class="avatar-outfit">${friend.outfit}</span>` : ''}
+          <span class="online-indicator"></span>
+        </div>
+        <span class="friend-name">${friend.name}</span>
+        <span class="friend-streak">🔥 ${friend.streak}d</span>
       </div>
-      <span class="social-friend-name">${friend.name}</span>
-      <span class="social-friend-streak">🔥${friend.streak}</span>
-    </div>
-  `;
+    `;
+  } catch (e) {
+    console.error('[Social] Render friend chip error:', e);
+    return '';
+  }
 }
-
-// ─── NOTIFICATION PANEL ───────────────────────────────────────────────────────
 
 function renderNotificationPanel(notifications) {
-  return `
-    <div class="social-notif-panel" id="social-notif-panel">
-      <div class="social-notif-panel-header">
-        <h3 class="social-notif-title">🔔 Notifications</h3>
-        <button class="social-notif-mark-read" id="social-mark-read-btn">Mark all read</button>
-      </div>
-      <div class="social-notif-list">
-        ${(notifications || []).length === 0
-          ? `<p class="social-notif-empty">No notifications yet 👀</p>`
-          : (notifications || []).map(n => `
-            <div class="social-notif-item ${n.read ? '' : 'social-notif-item--unread'}">
-              <span class="social-notif-icon">${n.icon}</span>
-              <div class="social-notif-body">
-                <p class="social-notif-text">${n.text}</p>
-                <span class="social-notif-time">${formatTimeAgo(n.time)}</span>
+  try {
+    return `
+      <div class="finch-notif-panel card-3d" id="finch-notif-panel">
+        <div class="finch-notif-header">
+          <h3>🔔 Squad Vibes & Alerts</h3>
+          <button class="btn btn-secondary btn-xs btn-3d" id="finch-mark-all-read-btn">Clear All</button>
+        </div>
+        <div class="finch-notif-list">
+          ${notifications.length === 0
+            ? `<div class="finch-notif-empty">No new vibes. Share updates to inspire the squad! 👥</div>`
+            : notifications.map(n => `
+              <div class="finch-notif-item ${n.read ? '' : 'finch-notif-item--unread'}">
+                <span class="finch-notif-icon">${n.icon}</span>
+                <div class="finch-notif-body">
+                  <p class="finch-notif-text">${n.text}</p>
+                  <span class="finch-notif-time">${formatTimeAgo(n.time)}</span>
+                </div>
+                ${!n.read ? `<span class="finch-notif-unread-dot"></span>` : ''}
               </div>
-              ${!n.read ? `<span class="social-notif-dot"></span>` : ''}
-            </div>
-          `).join('')
-        }
+            `).join('')
+          }
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  } catch (e) {
+    console.error('[Social] Render notification panel error:', e);
+    return '';
+  }
 }
 
-// ─── PROFILE CARD MODAL ───────────────────────────────────────────────────────
+function renderLeaderboard(friends, profile) {
+  try {
+    const myEntry = { name: profile.name || 'You', streak: profile.streak || 0, mascot: '🦉', isMe: true };
+    const all = [...friends, myEntry].sort((a, b) => b.streak - a.streak);
+    const medals = ['🥇', '🥈', '🥉'];
+    return `
+      <div class="finch-leaderboard card-3d">
+        <h3 class="finch-lb-title">🏆 Weekly Streak Leaders</h3>
+        <div class="finch-lb-list">
+          ${all.map((f, i) => `
+            <div class="finch-lb-row ${f.isMe ? 'finch-lb-row--me' : ''}">
+              <span class="finch-lb-rank">${medals[i] || `#${i + 1}`}</span>
+              <span class="finch-lb-mascot">${f.mascot}</span>
+              <span class="finch-lb-name">${f.name}${f.isMe ? ' (You)' : ''}</span>
+              <span class="finch-lb-streak">🔥 ${f.streak} days</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    console.error('[Social] Render leaderboard error:', e);
+    return '';
+  }
+}
 
 function openProfileCard(friend, container) {
   try {
     if (!friend) return;
-    const existing = container.querySelector('#social-profile-card-modal');
+    const existing = container.querySelector('#finch-profile-card-modal');
     if (existing) existing.remove();
 
     const data = getSocialData();
     const friendPosts = data.posts.filter(p => p.authorId === friend.id).slice(0, 3);
 
     const modal = document.createElement('div');
-    modal.className = 'social-profile-modal';
-    modal.id = 'social-profile-card-modal';
+    modal.className = 'finch-profile-modal';
+    modal.id = 'finch-profile-card-modal';
     modal.innerHTML = `
-      <div class="social-profile-backdrop" id="profile-backdrop"></div>
-      <div class="social-profile-card animate-pop">
-        <div class="social-profile-hero">
-          <div class="social-profile-avatar-big">
+      <div class="finch-modal-backdrop" id="profile-backdrop"></div>
+      <div class="finch-profile-card card-3d animate-pop">
+        <div class="finch-profile-hero">
+          <div class="finch-profile-avatar-big">
             <span>${friend.mascot}</span>
-            ${friend.outfit ? `<span class="social-profile-outfit-big">${friend.outfit}</span>` : ''}
+            ${friend.outfit ? `<span class="finch-profile-outfit-big">${friend.outfit}</span>` : ''}
           </div>
-          <div class="social-profile-info">
-            <h3 class="social-profile-name">${friend.name}</h3>
-            <span class="social-profile-rank">${friend.rank || 'Recruit'}</span>
-            <p class="social-profile-bio">${friend.bio || 'No bio yet 😊'}</p>
-          </div>
-        </div>
-        <div class="social-profile-stats-row">
-          <div class="social-profile-stat">
-            <span class="social-profile-stat-val">🔥 ${friend.streak}</span>
-            <span class="social-profile-stat-label">Streak</span>
-          </div>
-          <div class="social-profile-stat">
-            <span class="social-profile-stat-val">⭐ ${friend.level}</span>
-            <span class="social-profile-stat-label">Level</span>
-          </div>
-          <div class="social-profile-stat">
-            <span class="social-profile-stat-val">📝 ${friendPosts.length}</span>
-            <span class="social-profile-stat-label">Posts</span>
+          <div class="finch-profile-info">
+            <h3 class="finch-profile-name">${friend.name}</h3>
+            <span class="finch-profile-rank">${friend.rank || 'Recruit'}</span>
+            <p class="finch-profile-bio">${friend.bio || 'No bio yet 😊'}</p>
           </div>
         </div>
+        
+        <div class="finch-profile-stats-row">
+          <div class="finch-profile-stat">
+            <span class="finch-profile-stat-val">🔥 ${friend.streak}</span>
+            <span class="finch-profile-stat-label">Streak</span>
+          </div>
+          <div class="finch-profile-stat">
+            <span class="finch-profile-stat-val">⭐ ${friend.level}</span>
+            <span class="finch-profile-stat-label">Level</span>
+          </div>
+          <div class="finch-profile-stat">
+            <span class="finch-profile-stat-val">📝 ${friendPosts.length}</span>
+            <span class="finch-profile-stat-label">Posts</span>
+          </div>
+        </div>
+
         ${friendPosts.length > 0 ? `
-          <div class="social-profile-recent">
-            <p class="social-profile-recent-label">Recent Check-ins</p>
+          <div class="finch-profile-recent">
+            <p class="finch-profile-recent-label">Recent Activities</p>
             ${friendPosts.map(p => `
-              <div class="social-profile-recent-post">
-                <span>${p.mood}</span>
-                <p>${p.text}</p>
-                <span class="social-profile-recent-time">${formatTimeAgo(p.timestamp)}</span>
+              <div class="finch-profile-recent-post card-3d">
+                <div class="recent-post-header">
+                  <span class="recent-tag">${p.activity}</span>
+                  <span class="recent-mood">${p.mood}</span>
+                </div>
+                <p class="recent-text">${p.text}</p>
+                <span class="recent-time">${formatTimeAgo(p.timestamp)}</span>
               </div>
             `).join('')}
           </div>
         ` : ''}
-        <button class="social-profile-challenge-btn">⚡ Send Challenge</button>
-        <button class="social-profile-close" id="profile-close-btn">✕ Close</button>
+
+        <div class="finch-profile-modal-actions">
+          <button class="btn btn-primary btn-3d challenge-partner-btn">⚡ Challenge Partner</button>
+          <button class="btn btn-secondary btn-3d close-profile-modal-btn" id="profile-close-btn">✕ Close</button>
+        </div>
       </div>
     `;
     container.appendChild(modal);
 
     modal.querySelector('#profile-backdrop').addEventListener('click', () => { try { modal.remove(); } catch (e) {} });
     modal.querySelector('#profile-close-btn').addEventListener('click', () => { try { modal.remove(); } catch (e) {} });
-    modal.querySelector('.social-profile-challenge-btn').addEventListener('click', () => {
+    modal.querySelector('.challenge-partner-btn').addEventListener('click', () => {
       try {
-        modal.querySelector('.social-profile-challenge-btn').textContent = '✅ Challenge Sent!';
-        modal.querySelector('.social-profile-challenge-btn').disabled = true;
+        const btn = modal.querySelector('.challenge-partner-btn');
+        btn.textContent = '✅ Challenge Sent!';
+        btn.disabled = true;
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-primary');
       } catch (e) {}
     });
-  } catch (e) { console.error('[Social] Profile card error:', e); }
+  } catch (e) {
+    console.error('[Social] Error opening profile card:', e);
+  }
 }
-
-// ─── MASCOT REACTION BANNER ───────────────────────────────────────────────────
 
 function showMascotReactionBanner(container, event) {
   try {
     const reaction = getMascotReaction(event);
     if (!reaction) return;
+
+    // Check and remove existing banners
+    const existing = container.querySelector('.finch-mascot-banner');
+    if (existing) existing.remove();
+
     const banner = document.createElement('div');
-    banner.className = 'social-mascot-banner animate-pop';
+    banner.className = 'finch-mascot-banner card-3d animate-pop';
     banner.innerHTML = `
-      <span class="banner-mascot">${reaction.mascotEmoji}${reaction.outfitEmoji}</span>
-      <span class="banner-msg">${reaction.message}</span>
+      <div class="banner-mascot-icon">
+        <span class="base">${reaction.mascotEmoji}</span>
+        ${reaction.outfitEmoji ? `<span class="outfit">${reaction.outfitEmoji}</span>` : ''}
+      </div>
+      <div class="banner-body">
+        <span class="emoji-bubble">${reaction.emoji}</span>
+        <p class="msg">${reaction.message}</p>
+      </div>
     `;
     container.insertBefore(banner, container.firstChild);
     setTimeout(() => {
-      banner.classList.add('fade-out');
-      setTimeout(() => banner.remove(), 500);
-    }, 3500);
-  } catch (e) { console.error('[Social] Banner error:', e); }
+      try {
+        banner.classList.add('fade-out');
+        setTimeout(() => banner.remove(), 500);
+      } catch (e) {}
+    }, 4000);
+  } catch (e) {
+    console.error('[Social] Mascot banner error:', e);
+  }
 }
 
-// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
+function createFloatingVibeElement(button, emoji) {
+  try {
+    const rect = button.getBoundingClientRect();
+    const container = document.querySelector('.android-phone-frame') || document.body;
+    const containerRect = container.getBoundingClientRect();
 
-function renderLeaderboard(friends, profile) {
-  const myEntry = { name: profile.name || 'You', streak: profile.streak || 0, mascot: '🦉', isMe: true };
-  const all = [...friends, myEntry].sort((a, b) => b.streak - a.streak);
-  const medals = ['🥇', '🥈', '🥉'];
-  return `
-    <div class="social-leaderboard card-3d">
-      <h3 class="social-lb-title">🏆 Weekly Streak Leaders</h3>
-      ${all.map((f, i) => `
-        <div class="social-lb-row ${f.isMe ? 'social-lb-row--me' : ''}">
-          <span class="social-lb-medal">${medals[i] || `#${i + 1}`}</span>
-          <span class="social-lb-mascot">${f.mascot}</span>
-          <span class="social-lb-name">${f.name}${f.isMe ? ' (You)' : ''}</span>
-          <span class="social-lb-streak">🔥 ${f.streak} days</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
+    const floatEl = document.createElement('span');
+    floatEl.className = 'finch-floating-vibe';
+    floatEl.textContent = emoji;
+    
+    // Position it relative to the container
+    const x = rect.left - containerRect.left + rect.width / 2;
+    const y = rect.top - containerRect.top;
+    
+    floatEl.style.left = `${x}px`;
+    floatEl.style.top = `${y}px`;
+    
+    container.appendChild(floatEl);
+    
+    setTimeout(() => {
+      try { floatEl.remove(); } catch (e) {}
+    }, 1500);
+  } catch (e) {
+    console.error('[Social] Floating vibe animation error:', e);
+  }
 }
 
-// ─── MAIN RENDER ─────────────────────────────────────────────────────────────
+// ─── MAIN RENDER VIEW ────────────────────────────────────────────────────────
 
 export function renderSocial(container) {
   try {
     seedDemoData();
-    const data    = getSocialData();
+    const data = getSocialData();
     const profile = getProfile();
-    let activeTab = 'foryou';
+    let selectedActivity = 'Focus 🎯';
+    let selectedMood = '🎯';
 
-    function getFilteredPosts(tab) {
-      const allPosts = data.posts;
-      if (tab === 'friends')  return allPosts.filter(p => p.authorId !== 'me');
-      if (tab === 'trending') return [...allPosts].sort((a, b) =>
-        Object.values(b.reactions || {}).reduce((s, v) => s + v, 0) -
-        Object.values(a.reactions || {}).reduce((s, v) => s + v, 0)
-      );
-      return allPosts; // for you = all
-    }
-
-    function buildFeedHTML(tab) {
-      const posts = getFilteredPosts(tab);
-      if (tab === 'trending') {
-        const trending = getTrendingTopics(data.posts);
-        const trendingHTML = trending.length > 0 ? `
-          <div class="social-trending-tags">
-            ${trending.map(([t, c]) => `<span class="social-trending-tag">${t} <em>${c}</em></span>`).join('')}
-          </div>` : '';
-        return trendingHTML + posts.map(p => renderPostCard(p, p.authorId === 'me')).join('');
-      }
-      return posts.length > 0
-        ? posts.map(p => renderPostCard(p, p.authorId === 'me')).join('')
-        : `<div class="social-empty-feed">Nothing here yet. Post a check-in! 🚀</div>`;
-    }
+    // Calculate leaderboard standing rank
+    const myEntryForRank = { name: profile.name || 'You', streak: profile.streak || 0, isMe: true };
+    const leaderboardRankings = [...data.friends, myEntryForRank].sort((a, b) => b.streak - a.streak);
+    const myStandingRank = leaderboardRankings.findIndex(f => f.isMe) + 1;
 
     const unread = unreadCount(data.notifications);
-    const activeHoursAgo = data.friends.filter(f => f.streak > 0).length;
-
-    // Calculate leaderboard rank
-    const myEntry = { name: profile.name || 'You', streak: profile.streak || 0, isMe: true };
-    const all = [...data.friends, myEntry].sort((a, b) => b.streak - a.streak);
-    const myRank = all.findIndex(f => f.isMe) + 1;
 
     container.innerHTML = `
-      <div class="social-view">
-
-        <!-- Header -->
-        <div class="social-header">
-          <div class="social-header-left">
-            <h2 class="social-title">👥 Social</h2>
-            ${activeHoursAgo > 0
-              ? `<span class="social-live-pulse">● ${activeHoursAgo} active</span>`
-              : ''}
-          </div>
-          <button class="social-bell-btn" id="social-bell-btn" aria-label="Notifications">
+      <div class="finch-social-view">
+        <!-- Social Header -->
+        <div class="finch-social-header">
+          <h2 class="social-view-title">👥 Squad Circle</h2>
+          <button class="finch-bell-btn" id="finch-bell-btn" aria-label="Notifications">
             🔔
-            ${unread > 0 ? `<span class="social-bell-badge">${unread}</span>` : ''}
+            ${unread > 0 ? `<span class="finch-bell-badge">${unread}</span>` : ''}
           </button>
         </div>
 
         <div class="view-progress-pill" style="margin-bottom: 16px;">
-          <span>Weekly Leaderboard Standing: <strong>🏆 Rank #${myRank}</strong></span>
+          <span>Weekly Squad Standing: <strong>🏆 Rank #${myStandingRank}</strong></span>
         </div>
 
         <!-- Notification Panel (hidden by default) -->
-        <div id="social-notif-wrapper" class="hidden">
+        <div id="finch-notif-wrapper" class="hidden">
           ${renderNotificationPanel(data.notifications)}
         </div>
 
-        <!-- Mascot Banner Slot -->
-        <div id="social-banner-slot"></div>
+        <!-- Banner slot for mascot dialog reactions -->
+        <div id="finch-banner-slot"></div>
 
-        <!-- Friends Strip -->
-        <div class="social-section">
-          <div class="social-section-label">Your Squad</div>
-          <div class="social-friends-strip" id="social-friends-strip">
+        <!-- Squad Friends Strip -->
+        <div class="finch-social-section">
+          <div class="finch-section-label">Accountability Squad</div>
+          <div class="finch-friends-strip" id="finch-friends-strip">
             ${data.friends.map(f => renderFriendChip(f)).join('')}
-            <div class="social-friend-chip social-add-friend" id="social-add-friend-btn">
-              <div class="social-friend-avatar social-add-avatar">➕</div>
-              <span class="social-friend-name">Add</span>
+            <div class="finch-friend-chip finch-add-friend card-3d" id="finch-add-friend-btn">
+              <div class="finch-friend-avatar add-avatar">➕</div>
+              <span class="friend-name">Add Partner</span>
             </div>
           </div>
         </div>
 
-        <!-- Leaderboard -->
-        <div class="social-section">
+        <!-- Weekly Leaderboard -->
+        <div class="finch-social-section">
           ${renderLeaderboard(data.friends, profile)}
         </div>
 
-        <!-- Check-In Composer -->
-        <div class="social-section">
-          <div class="social-section-label">Share a Check-in</div>
-          <div class="social-composer card-3d">
-            <div class="social-composer-mood">
-              <span class="composer-label">Mood:</span>
-              <div class="mood-options" id="mood-options">
+        <!-- Activity Check-In Composer -->
+        <div class="finch-social-section">
+          <div class="finch-section-label">Log Custom Activity</div>
+          <div class="finch-composer card-3d">
+            <div class="composer-row">
+              <span class="label">Activity:</span>
+              <div class="composer-select-box">
+                <select id="finch-activity-select" class="finch-dropdown">
+                  ${ACTIVITY_CATEGORIES.map(act => `
+                    <option value="${act.val}">${act.label}</option>
+                  `).join('')}
+                </select>
+              </div>
+            </div>
+            
+            <div class="composer-row" style="margin-top:8px;">
+              <span class="label">Mood:</span>
+              <div class="composer-moods-strip" id="finch-moods-strip">
                 ${MOOD_OPTIONS.map(m => `
-                  <button class="mood-btn ${m === '🎯' ? 'mood-btn--active' : ''}" data-mood="${m}">${m}</button>
+                  <button class="composer-mood-btn ${m === '🎯' ? 'mood-btn--active' : ''}" data-mood="${m}">${m}</button>
                 `).join('')}
               </div>
             </div>
-            <textarea id="social-checkin-text" class="social-composer-input"
-              placeholder="What did you accomplish? Share with your squad… ✍️"
-              maxlength="200" rows="3"></textarea>
-            <div class="social-composer-footer">
-              <span class="char-count" id="checkin-char-count">0 / 200</span>
-              <button class="social-post-btn" id="social-post-btn">Post 🚀</button>
+
+            <textarea id="finch-composer-text" class="finch-composer-textarea"
+                      placeholder="Explain what you did! Inspire your squad... ✍️"
+                      maxlength="200" rows="3"></textarea>
+            
+            <div class="composer-footer">
+              <span class="char-counter" id="finch-char-counter">0 / 200</span>
+              <button class="btn btn-success btn-3d post-checkin-btn" id="finch-post-checkin-btn">Post Check-In 🚀</button>
             </div>
           </div>
         </div>
 
-        <!-- Feed Tabs -->
-        <div class="social-section">
-          <div class="social-feed-tabs" id="social-feed-tabs">
-            <button class="social-tab-btn social-tab-btn--active" data-tab="foryou">For You</button>
-            <button class="social-tab-btn" data-tab="friends">Friends</button>
-            <button class="social-tab-btn" data-tab="trending">🔥 Trending</button>
-          </div>
-          <div class="social-feed" id="social-feed">
-            ${buildFeedHTML('foryou')}
+        <!-- Squad Feed list -->
+        <div class="finch-social-section">
+          <div class="finch-section-label">Activity Feed</div>
+          <div class="finch-feed" id="finch-feed">
+            ${data.posts.length > 0 
+              ? data.posts.map(p => renderPostCard(p, p.authorId === 'me')).join('')
+              : `<div class="finch-feed-empty">No updates yet. Be the first to post! 🚀</div>`
+            }
           </div>
         </div>
-
       </div>
 
-      <!-- Add Friend Modal -->
-      <div id="add-friend-modal" class="social-modal hidden">
-        <div class="social-modal-backdrop" id="add-friend-backdrop"></div>
-        <div class="social-modal-card card-3d animate-pop">
-          <h3>Add a Friend 🤝</h3>
-          <p class="social-modal-sub">Enter your friend's username to connect</p>
-          <input type="text" id="add-friend-input" class="social-modal-input" placeholder="Friend's name…" maxlength="30" />
-          <div class="social-modal-actions">
-            <button class="social-modal-cancel" id="add-friend-cancel">Cancel</button>
-            <button class="social-modal-confirm" id="add-friend-confirm">Add Friend ✅</button>
+      <!-- Add Friend Modal Overlay -->
+      <div id="finch-add-friend-modal" class="finch-modal hidden">
+        <div class="finch-modal-backdrop" id="add-friend-backdrop"></div>
+        <div class="finch-modal-card card-3d animate-pop">
+          <h3>Add Accountability Partner 🤝</h3>
+          <p class="sub">Enter your friend's name to connect</p>
+          <input type="text" id="add-friend-input" class="finch-modal-input" placeholder="Partner name..." maxlength="30" />
+          <div class="finch-modal-actions">
+            <button class="btn btn-secondary btn-3d" id="add-friend-cancel">Cancel</button>
+            <button class="btn btn-primary btn-3d" id="add-friend-confirm">Add Partner ✅</button>
           </div>
         </div>
       </div>
     `;
 
-    // ── Notification Bell ──────────────────────────────────────────────────────
-    const bellBtn       = container.querySelector('#social-bell-btn');
-    const notifWrapper  = container.querySelector('#social-notif-wrapper');
-    let notifOpen = false;
+    // ── INTERACTION HANDLERS ──────────────────────────────────────────────────
 
+    // 1. Notification Toggle
+    const bellBtn = container.querySelector('#finch-bell-btn');
+    const notifWrapper = container.querySelector('#finch-notif-wrapper');
+    let notifOpen = false;
     bellBtn.addEventListener('click', () => {
       try {
         notifOpen = !notifOpen;
         notifWrapper.classList.toggle('hidden', !notifOpen);
         if (notifOpen) {
           markAllNotificationsRead();
-          const badge = bellBtn.querySelector('.social-bell-badge');
+          const badge = bellBtn.querySelector('.finch-bell-badge');
           if (badge) badge.remove();
         }
-      } catch (e) { console.error('[Social] Bell toggle error:', e); }
+      } catch (e) {
+        console.error('[Social] Bell toggle error:', e);
+      }
     });
 
-    const markReadBtn = container.querySelector('#social-mark-read-btn');
+    const markReadBtn = container.querySelector('#finch-mark-all-read-btn');
     if (markReadBtn) {
       markReadBtn.addEventListener('click', () => {
         try {
           markAllNotificationsRead();
-          container.querySelectorAll('.social-notif-item--unread').forEach(el => el.classList.remove('social-notif-item--unread'));
-          container.querySelectorAll('.social-notif-dot').forEach(el => el.remove());
-        } catch (e) { console.error('[Social] Mark read error:', e); }
+          container.querySelectorAll('.finch-notif-item--unread').forEach(el => el.classList.remove('finch-notif-item--unread'));
+          container.querySelectorAll('.finch-notif-unread-dot').forEach(el => el.remove());
+          const socialData = getSocialData();
+          socialData.notifications = [];
+          saveSocialData(socialData);
+          container.querySelector('.finch-notif-list').innerHTML = `<div class="finch-notif-empty">No new vibes. Share updates to inspire the squad! 👥</div>`;
+        } catch (e) {
+          console.error('[Social] Mark notifications read error:', e);
+        }
       });
     }
 
-    // ── Feed Tabs ──────────────────────────────────────────────────────────────
-    container.querySelectorAll('.social-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        try {
-          container.querySelectorAll('.social-tab-btn').forEach(b => b.classList.remove('social-tab-btn--active'));
-          btn.classList.add('social-tab-btn--active');
-          activeTab = btn.dataset.tab;
-          const feed = container.querySelector('#social-feed');
-          feed.innerHTML = buildFeedHTML(activeTab);
-          bindFeedEvents(feed);
-        } catch (e) { console.error('[Social] Tab switch error:', e); }
-      });
+    // 2. Activity Category Dropdown
+    const actSelect = container.querySelector('#finch-activity-select');
+    actSelect.addEventListener('change', () => {
+      try {
+        selectedActivity = actSelect.value;
+      } catch (e) {}
     });
 
-    // ── Mood Selector ─────────────────────────────────────────────────────────
-    let selectedMood = '🎯';
-    container.querySelectorAll('.mood-btn').forEach(btn => {
+    // 3. Composer Mood Options
+    container.querySelectorAll('.composer-mood-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         try {
-          container.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('mood-btn--active'));
+          container.querySelectorAll('.composer-mood-btn').forEach(b => b.classList.remove('mood-btn--active'));
           btn.classList.add('mood-btn--active');
           selectedMood = btn.dataset.mood;
-        } catch (e) { console.error('[Social] Mood error:', e); }
+        } catch (e) {
+          console.error('[Social] Mood selection error:', e);
+        }
       });
     });
 
-    // ── Char Counter ──────────────────────────────────────────────────────────
-    const textInput = container.querySelector('#social-checkin-text');
-    const charCount = container.querySelector('#checkin-char-count');
-    textInput.addEventListener('input', () => {
-      try { charCount.textContent = `${textInput.value.length} / 200`; }
-      catch (e) { console.error('[Social] Char count error:', e); }
+    // 4. Character Counter
+    const composerText = container.querySelector('#finch-composer-text');
+    const charCounter = container.querySelector('#finch-char-counter');
+    composerText.addEventListener('input', () => {
+      try {
+        charCounter.textContent = `${composerText.value.length} / 200`;
+      } catch (e) {}
     });
 
-    // ── Post Check-in ─────────────────────────────────────────────────────────
-    container.querySelector('#social-post-btn').addEventListener('click', () => {
+    // 5. Post Check-in Submission
+    container.querySelector('#finch-post-checkin-btn').addEventListener('click', () => {
       try {
-        const text = textInput.value.trim();
+        const text = composerText.value.trim();
         if (!text) {
-          textInput.classList.add('shake');
-          setTimeout(() => textInput.classList.remove('shake'), 500);
+          composerText.classList.add('shake');
+          setTimeout(() => composerText.classList.remove('shake'), 500);
           return;
         }
-        const post = postCheckIn(text, selectedMood);
+        const post = postCheckIn(text, selectedActivity, selectedMood);
         if (post) {
-          textInput.value = '';
-          charCount.textContent = '0 / 200';
-          // Update local data reference
-          data.posts.unshift(post);
-          const feed = container.querySelector('#social-feed');
-          const div  = document.createElement('div');
+          composerText.value = '';
+          charCounter.textContent = '0 / 200';
+          // Re-render feed
+          const feed = container.querySelector('#finch-feed');
+          const div = document.createElement('div');
           div.innerHTML = renderPostCard(post, true);
           const card = div.firstElementChild;
           card.classList.add('animate-pop');
+          
+          const emptyFeed = feed.querySelector('.finch-feed-empty');
+          if (emptyFeed) emptyFeed.remove();
+
           feed.insertBefore(card, feed.firstChild);
-          bindFeedEvents(feed);
-          showMascotReactionBanner(container.querySelector('#social-banner-slot'), 'check_in_posted');
+          bindFeedItemEvents(feed);
+
+          // Triggers mascot reactive feedback banner
+          showMascotReactionBanner(container.querySelector('#finch-banner-slot'), 'check_in_posted');
         }
-      } catch (e) { console.error('[Social] Post submit error:', e); }
+      } catch (e) {
+        console.error('[Social] Submit check-in error:', e);
+      }
     });
 
-    // ── Friend Chips → Profile Cards ──────────────────────────────────────────
+    // 6. Friends Chips Modal Pop-up
     function bindFriendChips() {
-      container.querySelectorAll('.social-friend-chip[data-friend-id]').forEach(chip => {
+      container.querySelectorAll('.finch-friend-chip[data-friend-id]').forEach(chip => {
         chip.addEventListener('click', () => {
           try {
             const id = chip.dataset.friendId;
             const friend = data.friends.find(f => f.id === id);
             if (friend) openProfileCard(friend, container);
-          } catch (e) { console.error('[Social] Friend chip error:', e); }
+          } catch (e) {
+            console.error('[Social] Friend chip click error:', e);
+          }
         });
       });
     }
     bindFriendChips();
 
-    // ── Avatar clicks → Profile Cards ─────────────────────────────────────────
-    function bindFeedEvents(feed) {
-      // Avatar clicks
-      feed.querySelectorAll('.social-avatar--clickable').forEach(av => {
-        av.addEventListener('click', () => {
-          try {
-            const friendId = av.dataset.friendId;
-            const friend = data.friends.find(f => f.id === friendId);
-            if (friend) openProfileCard(friend, container);
-          } catch (e) { console.error('[Social] Avatar click error:', e); }
-        });
-      });
-
-      // Likes (heart button)
-      feed.querySelectorAll('.tw-like-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId   = btn.dataset.postId;
-            const newCount = likePost(postId);
-            const localPost = data.posts.find(p => p.id === postId);
-            if (localPost) localPost.likes = newCount;
-            // Animate heart
-            const heart = btn.querySelector('.tw-heart-icon');
-            if (heart) {
-              heart.classList.add('tw-heart--liked');
-              btn.classList.add('tw-like-btn--liked');
-            }
-            // Update count display
-            const countEl = btn.querySelector('.tw-like-count');
-            if (countEl) countEl.textContent = newCount > 0 ? newCount : '';
-            btn.disabled = true;
-          } catch (e) { console.error('[Social] Like btn error:', e); }
-        });
-      });
-
-
-      // Reply toggle
-      feed.querySelectorAll('.social-reply-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId   = btn.dataset.postId;
-            const composer = feed.querySelector(`#reply-composer-${postId}`);
-            if (composer) {
-              composer.classList.toggle('hidden');
-              if (!composer.classList.contains('hidden')) {
-                composer.querySelector('input').focus();
-              }
-            }
-          } catch (e) { console.error('[Social] Reply toggle error:', e); }
-        });
-      });
-
-      // Reply submit
-      feed.querySelectorAll('.social-reply-submit').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId = btn.dataset.postId;
-            const input  = feed.querySelector(`.social-reply-input[data-post-id="${postId}"]`);
-            if (!input || !input.value.trim()) return;
-            const reply = addReply(postId, input.value);
-            if (reply) {
-              input.value = '';
-              const card = feed.querySelector(`[data-post-id="${postId}"]`);
-              if (card) {
-                const updatedData = getSocialData();
-                const post = updatedData.posts.find(p => p.id === postId);
-                const localPost = data.posts.find(p => p.id === postId);
-                if (localPost && post) localPost.replies = post.replies;
-                // Re-render replies thread (Twitter layout)
-                const repliesThread = card.querySelector(`#tw-replies-${postId}`);
-                if (repliesThread) {
-                  repliesThread.innerHTML = renderReplies(post || localPost);
-                  // Add thread line if not present
-                  const avatarCol = card.querySelector('.tw-avatar-col');
-                  if (avatarCol && !avatarCol.querySelector('.tw-thread-line')) {
-                    const line = document.createElement('div');
-                    line.className = 'tw-thread-line';
-                    avatarCol.appendChild(line);
-                  }
-                }
-                // Update reply button count
-                const toggleBtn = card.querySelector('.social-reply-toggle-btn');
-                const updatedPost = data.posts.find(p => p.id === postId);
-                if (toggleBtn && updatedPost) {
-                  toggleBtn.textContent = `💬 Reply (${(updatedPost.replies || []).length})`;
-                }
-              }
-            }
-          } catch (e) { console.error('[Social] Reply submit error:', e); }
-        });
-      });
-
-      // Repost
-      feed.querySelectorAll('.social-repost-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId  = btn.dataset.postId;
-            const postData = data.posts.find(p => p.id === postId);
-            if (!postData) return;
-            const repost = repostPost(postData);
-            if (repost) {
-              data.posts.unshift(repost);
-              const div = document.createElement('div');
-              div.innerHTML = renderPostCard(repost, true);
-              const card = div.firstElementChild;
-              card.classList.add('animate-pop');
-              feed.insertBefore(card, feed.firstChild);
-              bindFeedEvents(feed);
-              btn.textContent = '✅ Reposted!';
-              btn.disabled = true;
-            }
-          } catch (e) { console.error('[Social] Repost error:', e); }
-        });
-      });
-    }
-    bindFeedEvents(container.querySelector('#social-feed'));
-
-    // ── Add Friend Modal ───────────────────────────────────────────────────────
-    const addBtn     = container.querySelector('#social-add-friend-btn');
-    const modal      = container.querySelector('#add-friend-modal');
-    const backdrop   = container.querySelector('#add-friend-backdrop');
-    const cancelBtn  = container.querySelector('#add-friend-cancel');
+    // 7. Add Friend Modal Operations
+    const addBtn = container.querySelector('#finch-add-friend-btn');
+    const modal = container.querySelector('#finch-add-friend-modal');
+    const backdrop = container.querySelector('#add-friend-backdrop');
+    const cancelBtn = container.querySelector('#add-friend-cancel');
     const confirmBtn = container.querySelector('#add-friend-confirm');
     const friendInput = container.querySelector('#add-friend-input');
 
     addBtn.addEventListener('click', () => {
-      try { modal.classList.remove('hidden'); friendInput.focus(); }
-      catch (e) { console.error('[Social] Modal open error:', e); }
+      try {
+        modal.classList.remove('hidden');
+        friendInput.focus();
+      } catch (e) {}
     });
+
     [backdrop, cancelBtn].forEach(el => el.addEventListener('click', () => {
-      try { modal.classList.add('hidden'); friendInput.value = ''; }
-      catch (e) { console.error('[Social] Modal close error:', e); }
+      try {
+        modal.classList.add('hidden');
+        friendInput.value = '';
+      } catch (e) {}
     }));
+
     confirmBtn.addEventListener('click', () => {
       try {
         const name = friendInput.value.trim();
         if (!name) return;
-        const mascots  = ['🦉', '🐻', '🐱', '🐺', '🦊'];
-        const outfits  = ['', '👔', '🧑‍🚀', '🥷', '🤠', '🧙'];
+        
+        const mascots = ['🦉', '🐻', '🐱'];
+        const outfits = ['', '👔', '🧑‍🚀', '🥷', '🤠', '🧙', '🕵️', '🧑‍🍳', '🦸'];
+        const bios = [
+          'Grinding every day! 🎯', 'Deep focus is my game. 📖',
+          'Healthy routines, healthy mind. 🧘', 'Let\'s achieve our goals! 💪'
+        ];
+
         const newFriend = {
           id: 'friend_' + Date.now(),
           name: name.substring(0, 20),
           mascot: mascots[Math.floor(Math.random() * mascots.length)],
-          streak: Math.floor(Math.random() * 10),
-          level: Math.floor(Math.random() * 5) + 1,
+          streak: Math.floor(Math.random() * 8) + 1,
+          level: Math.floor(Math.random() * 4) + 1,
           outfit: outfits[Math.floor(Math.random() * outfits.length)],
           rank: 'Recruit',
-          bio: 'New to Odyssey! 🎯'
+          bio: bios[Math.floor(Math.random() * bios.length)]
         };
-        const d2 = getSocialData();
-        d2.friends.push(newFriend);
-        // Add notification
-        d2.notifications = d2.notifications || [];
-        d2.notifications.unshift({ id: 'n_' + Date.now(), icon: '🤝', text: `You added ${newFriend.name} as a friend!`, time: Date.now(), read: false });
-        saveSocialData(d2);
+
+        const socialData = getSocialData();
+        socialData.friends.push(newFriend);
+        // Simulate notification
+        socialData.notifications = socialData.notifications || [];
+        socialData.notifications.unshift({
+          id: 'n_' + Date.now(),
+          icon: '🤝',
+          text: `You added ${newFriend.name} to your squad!`,
+          time: Date.now(),
+          read: false
+        });
+
+        saveSocialData(socialData);
         data.friends.push(newFriend);
-        const strip   = container.querySelector('#social-friends-strip');
-        const addChip = strip.querySelector('.social-add-friend');
+
+        // Append to friends strip
+        const strip = container.querySelector('#finch-friends-strip');
+        const addChipBtn = strip.querySelector('#finch-add-friend-btn');
         const chipDiv = document.createElement('div');
         chipDiv.innerHTML = renderFriendChip(newFriend);
-        strip.insertBefore(chipDiv.firstElementChild, addChip);
+        strip.insertBefore(chipDiv.firstElementChild, addChipBtn);
+
         bindFriendChips();
+
         modal.classList.add('hidden');
         friendInput.value = '';
-        showMascotReactionBanner(container.querySelector('#social-banner-slot'), 'new_friend');
-      } catch (e) { console.error('[Social] Add friend error:', e); }
+        
+        showMascotReactionBanner(container.querySelector('#finch-banner-slot'), 'new_friend');
+      } catch (e) {
+        console.error('[Social] Add partner error:', e);
+      }
     });
+
+    // 8. Bind post events (Vibes Picker, Comment Toggle, commenting)
+    function bindFeedItemEvents(feed) {
+      // Click avatar -> opens Profile
+      feed.querySelectorAll('.social-avatar--clickable').forEach(av => {
+        av.addEventListener('click', (e) => {
+          try {
+            e.stopPropagation();
+            const id = av.dataset.friendId;
+            if (id === 'me') {
+              // Show own brief info
+              const ownProfile = {
+                id: 'me', name: profile.name || 'You', mascot: '🦉',
+                streak: profile.streak || 0, level: profile.level || 1,
+                outfit: profile.equippedOutfit !== 'none' ? OUTFIT_DISPLAY[profile.equippedOutfit]?.emoji : '',
+                rank: profile.militaryRank || 'Civilian', bio: 'Living the mindful life!'
+              };
+              openProfileCard(ownProfile, container);
+            } else {
+              const friend = data.friends.find(f => f.id === id);
+              if (friend) openProfileCard(friend, container);
+            }
+          } catch (err) {}
+        });
+      });
+
+      // Vibe Picker toggle
+      feed.querySelectorAll('.vibe-picker-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          try {
+            e.stopPropagation();
+            const postId = btn.dataset.postId;
+            const picker = feed.querySelector(`#vibe-picker-${postId}`);
+            if (picker) {
+              picker.classList.toggle('hidden');
+            }
+          } catch (err) {}
+        });
+      });
+
+      // Close vibe picker when clicking outside
+      document.addEventListener('click', () => {
+        try {
+          feed.querySelectorAll('.finch-vibe-picker').forEach(p => p.classList.add('hidden'));
+        } catch (e) {}
+      });
+
+      // Vibe Option Selection
+      feed.querySelectorAll('.vibe-option-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          try {
+            e.stopPropagation();
+            const postId = btn.dataset.postId;
+            const vibeKey = btn.dataset.vibe;
+            const details = VIBE_TYPES[vibeKey] || { emoji: '❤️' };
+
+            const newCount = sendVibeToPost(postId, vibeKey);
+            
+            // Trigger floating vibe animation
+            createFloatingVibeElement(btn, details.emoji);
+
+            // Hide picker
+            const picker = feed.querySelector(`#vibe-picker-${postId}`);
+            if (picker) picker.classList.add('hidden');
+
+            // Refresh the specific post card content (or just re-render tally)
+            const postData = getSocialData().posts.find(p => p.id === postId);
+            const card = feed.querySelector(`.finch-post-card[data-post-id="${postId}"]`);
+            if (postData && card) {
+              // Update localized tally
+              let tally = card.querySelector('.finch-post-vibes-tally');
+              if (!tally) {
+                tally = document.createElement('div');
+                tally.className = 'finch-post-vibes-tally';
+                card.insertBefore(tally, card.querySelector('.finch-replies-section'));
+              }
+              tally.innerHTML = Object.entries(postData.vibes || {}).map(([v, c]) => {
+                if (c === 0) return '';
+                const vDetails = VIBE_TYPES[v] || { emoji: '❤️' };
+                return `<span class="finch-vibe-bubble">${vDetails.emoji} <span class="vibe-count">${c}</span></span>`;
+              }).join('');
+
+              // Trigger mascot banner reaction locally
+              showMascotReactionBanner(container.querySelector('#finch-banner-slot'), 'reaction_received');
+            }
+          } catch (err) {
+            console.error('[Social] Error selecting vibe:', err);
+          }
+        });
+      });
+
+      // Comment Section Toggle
+      feed.querySelectorAll('.comment-toggle-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          try {
+            const postId = btn.dataset.postId;
+            const comp = feed.querySelector(`#comment-composer-${postId}`);
+            if (comp) {
+              comp.classList.toggle('hidden');
+              if (!comp.classList.contains('hidden')) {
+                comp.querySelector('input').focus();
+              }
+            }
+          } catch (err) {}
+        });
+      });
+
+      // Submit Comment
+      feed.querySelectorAll('.comment-submit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          try {
+            const postId = btn.dataset.postId;
+            const input = feed.querySelector(`.finch-comment-input[data-post-id="${postId}"]`);
+            if (!input || !input.value.trim()) return;
+
+            const reply = addReplyToPost(postId, input.value);
+            if (reply) {
+              input.value = '';
+              const box = feed.querySelector(`#replies-box-${postId}`);
+              const list = feed.querySelector(`#replies-list-${postId}`);
+              if (box && list) {
+                box.classList.remove('hidden');
+                
+                const replyDiv = document.createElement('div');
+                replyDiv.className = 'finch-reply-row';
+                replyDiv.innerHTML = `
+                  <span class="finch-reply-avatar">${reply.authorMascot}</span>
+                  <div class="finch-reply-content">
+                    <div class="finch-reply-header">
+                      <span class="finch-reply-name">${reply.authorName}</span>
+                      <span class="finch-reply-time">just now</span>
+                    </div>
+                    <p class="finch-reply-text">${reply.text}</p>
+                  </div>
+                `;
+                list.appendChild(replyDiv);
+
+                // Update comments button count
+                const count = list.children.length;
+                const toggleBtn = feed.querySelector(`.comment-toggle-btn[data-post-id="${postId}"]`);
+                if (toggleBtn) {
+                  toggleBtn.innerHTML = `<span>💬</span> Comment (${count})`;
+                }
+              }
+            }
+          } catch (err) {
+            console.error('[Social] Error submitting comment:', err);
+          }
+        });
+      });
+    }
+
+    bindFeedItemEvents(container.querySelector('#finch-feed'));
 
   } catch (e) {
     console.error('[Social] Render error:', e);
