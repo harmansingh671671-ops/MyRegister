@@ -23,7 +23,6 @@ export function renderReflection(container) {
   container.innerHTML = `
     <div class="view-header">
       <h2>🦉 Evening Reflection Ritual</h2>
-      <p class="subtitle">Confirm what actually happened today. Honesty builds awareness.</p>
     </div>
 
     <div class="reflection-layout">
@@ -31,7 +30,6 @@ export function renderReflection(container) {
       <div class="reflection-sidebar">
         <div class="card card-3d">
           <h3>📂 Control Your Data</h3>
-          <p class="hint">Export your logs to a JSON file or restore a backup. Your data never leaves your device.</p>
           <div class="backup-actions">
             <button id="export-data-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
             
@@ -46,7 +44,6 @@ export function renderReflection(container) {
 
         <div class="card card-3d">
           <h3>⚙️ Customize Miss Reasons</h3>
-          <p class="hint">Create personal options for why blocks get missed.</p>
           <div class="custom-reasons-manager">
             <ul id="reasons-list-ui" class="reasons-list-ui">
               <!-- Rendered via JS -->
@@ -351,7 +348,7 @@ export function renderReflection(container) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tempo_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `odyssey_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });

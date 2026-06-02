@@ -1,64 +1,14 @@
 // Modules/gamification.js
 import { getProfile, saveProfile, getAllDays, getDay } from './storage.js';
 import { playUnlockSound, playSuccessSound, showToast } from './notifications.js';
+import { RANKS } from './ranks.js';
 
-// Calculate cumulative XP needed for a level
-// Linear system: Level L requires L * 100 XP to advance to L+1.
-export function getLevelFromXp(xp) {
-  // Let's use: Level = Math.floor(xp / 100) + 1
-  return Math.floor(xp / 100) + 1;
-}
-
-export function getXpInCurrentLevel(xp) {
-  return xp % 100;
-}
-
-export function getXpRequiredForNextLevel(level) {
-  return 100;
-}
-
-// Add XP to the user's profile and handle Level-Up celebrations
+// Add XP to the user's profile
 export function addXp(amount) {
   const profile = getProfile();
-  const oldLevel = profile.level;
-  
   profile.xp += amount;
-  profile.level = getLevelFromXp(profile.xp);
-
-  // Check for daily XP record
-  const todayStr = new Date().toISOString().split('T')[0];
-  // Calculate today's XP from day logs if needed, or track it dynamically. 
-  // Let's just track daily peak XP.
-  
-  if (profile.level > oldLevel) {
-    playUnlockSound();
-    triggerLevelUpModal(profile.level);
-  }
-
   saveProfile(profile);
-  return profile.level > oldLevel;
-}
-
-// Level Up Modal Celebration Overlay
-function triggerLevelUpModal(newLevel) {
-  const overlay = document.createElement('div');
-  overlay.className = 'fullscreen-modal alert-modal-overlay';
-  overlay.id = 'level-up-modal';
-  overlay.innerHTML = `
-    <div class="modal-backdrop"></div>
-    <div class="modal-card card-3d animate-pop level-up-card" style="text-align: center; max-width: 320px; padding: 30px;">
-      <div class="level-up-stars">✨⭐✨</div>
-      <div class="level-badge-large">${newLevel}</div>
-      <h2 style="font-family: var(--font-header); margin-top: 15px;">LEVEL UP!</h2>
-      <p style="color: var(--text-secondary); margin-bottom: 20px;">You reached Level ${newLevel}! Keep up the consistent schedule blocks.</p>
-      <button class="btn btn-primary btn-3d btn-full" id="close-lvl-btn">Awesome!</button>
-    </div>
-  `;
-  document.querySelector('.phone-screen-content').appendChild(overlay);
-
-  overlay.querySelector('#close-lvl-btn').onclick = () => {
-    overlay.remove();
-  };
+  return false;
 }
 
 // Bot Competitors Names and Baseline Config
@@ -329,7 +279,10 @@ export function triggerEODRecap(dateStr, closeParentModalFn) {
   };
 
   overlay.querySelector('#recap-share-btn').onclick = () => {
-    const shareText = `Tempo Day Review 📅\nLevel: ${profile.level} ⭐ | Streak: ${profile.streak} 🔥\nDaily Compliance: ${rate}%\nActivity Board: ${gridEmojis || 'None'}\nBuild honesty habits with Tempo!`;
+    const activeRankName = profile.militaryRank || 'Civilian';
+    const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
+    const badgeEmoji = rankObj ? rankObj.badge : '🍃';
+    const shareText = `Odyssey Day Review 📅\nRank: ${activeRankName} ${badgeEmoji} | Streak: ${profile.streak} 🔥\nDaily Compliance: ${rate}%\nActivity Board: ${gridEmojis || 'None'}\nBuild honesty habits with Odyssey!`;
     navigator.clipboard.writeText(shareText).then(() => {
       showToast("Copied recap text to clipboard! 🎉", "success");
     }).catch(err => {

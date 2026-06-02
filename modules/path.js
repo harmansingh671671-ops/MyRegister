@@ -1,5 +1,5 @@
 // Modules/path.js
-import { getDay, getProfile } from './storage.js';
+import { getDay, getProfile, getYetToCreditDiamonds } from './storage.js';
 import { openDayModal } from './dayModal.js';
 import { showPrompt } from './notifications.js';
 import { renderMascotWidget } from './mascot.js';
@@ -12,18 +12,7 @@ export function renderPath(container) {
   const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
   const badgeEmoji = rankObj ? rankObj.badge : "🍃";
 
-  // Calculate if the weekly honesty reminder banner should be shown
-  const lastShownStr = profile.lastHonestyReminderDate || '';
-  let showHonestyReminder = false;
-  if (!lastShownStr) {
-    showHonestyReminder = true;
-  } else {
-    const lastShown = new Date(lastShownStr);
-    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
-    if (new Date() - lastShown > oneWeekMs) {
-      showHonestyReminder = true;
-    }
-  }
+
   const todayStr = today.toISOString().split('T')[0];
   const tomVal = new Date(); tomVal.setDate(today.getDate() + 1);
   const tomorrowStr = tomVal.toISOString().split('T')[0];
@@ -82,7 +71,7 @@ export function renderPath(container) {
         <span class="stat-icon">🏁</span>
         <span class="stat-text text-secondary" id="header-section-num">1</span>
       </div>
-      <div class="duo-stat text-xp" title="Level">
+      <div class="duo-stat text-xp" title="Military Rank">
         <span class="stat-icon">${badgeEmoji}</span>
         <span class="stat-text header-level-val">${activeRankName}</span>
       </div>
@@ -92,7 +81,7 @@ export function renderPath(container) {
       </div>
       <div class="duo-stat text-gem" title="Gems">
         <span class="stat-icon">💎</span>
-        <span class="stat-text header-diamond-val">${profile.diamonds}</span>
+        <span class="stat-text header-diamond-val">${profile.diamonds}+${getYetToCreditDiamonds()}</span>
       </div>
       <div class="duo-stat text-heart" title="Integrity Health (Last 24 entries)">
         <span class="stat-icon">💖</span>
@@ -121,15 +110,7 @@ export function renderPath(container) {
       </button>
     </div>
 
-    ${showHonestyReminder ? `
-      <!-- Weekly Honesty Reminder Banner -->
-      <div id="path-honesty-banner-container" style="padding: 16px 16px 0 16px;">
-        <div class="integrity-banner card-3d" style="background: rgba(255, 150, 0, 0.08); border: 2px solid var(--duo-orange); border-bottom-width: 4px; padding: 12px 16px; border-radius: 16px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
-          <span style="font-size: 12px; font-weight: 600; line-height: 1.4; color: white;">🧠 <strong>Weekly Reminder:</strong> Log your tasks honestly. Absolute integrity beats a faked 100% compliance rate.</span>
-          <button id="close-honesty-banner-btn" style="background: none; border: none; color: var(--text-secondary); font-size: 18px; font-weight: bold; cursor: pointer; line-height: 1;">&times;</button>
-        </div>
-      </div>
-    ` : ''}
+
 
     <!-- Mascot Coach Row -->
     <div id="path-mascot-container" style="padding: 16px 16px 0 16px;"></div>
@@ -163,13 +144,23 @@ export function renderPath(container) {
     <!-- Trophy Weekly Report Modal -->
     <div id="trophy-modal" class="fullscreen-modal hidden">
       <div class="modal-backdrop" id="trophy-backdrop"></div>
-      <div class="modal-card card-3d animate-pop" style="max-width: 440px; padding: 30px;">
-        <span style="font-size:70px; display:block; margin-bottom:15px; animation: floatAvatar 1.5s ease-in-out infinite alternate;">🏆</span>
-        <h3 id="trophy-modal-title" style="font-family:var(--font-header); font-size:24px; margin-bottom:10px;">Week Review</h3>
-        <div id="trophy-modal-body" style="font-size:14px; color:var(--text-secondary); line-height:1.5; margin-bottom:20px; text-align:left;">
+      <div class="modal-card day-details-card card-3d animate-pop" id="trophy-modal-content">
+        <div class="modal-hero" style="background: linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+          <button class="btn-back" id="close-trophy-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <div>
+            <span class="modal-date-title" id="trophy-modal-title" style="margin: 0; font-size: 16px; font-weight: 800; display: block; line-height: 1.2;">🏆 Weekly Summary</span>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 600;">Your Weekly Progress Report</div>
+          </div>
+        </div>
+        
+        <div class="modal-body-scroll" id="trophy-modal-body">
           <!-- Injected -->
         </div>
-        <button id="close-trophy-btn" class="btn btn-primary btn-3d btn-full btn-sm">Got it!</button>
       </div>
     </div>
   `;
@@ -219,9 +210,19 @@ export function renderPath(container) {
           tooltip = 'Day Skipped';
         }
       } else if (isFuture) {
-        nodeType = 'locked';
-        icon = '🔒';
-        tooltip = 'Locked';
+        nodeType = 'future';
+        const FUTURE_DAY_ICONS = {
+          0: "🛌", // Sunday
+          1: "💻", // Monday
+          2: "📚", // Tuesday
+          3: "🏃", // Wednesday
+          4: "⚡", // Thursday
+          5: "🎯", // Friday
+          6: "🧘"  // Saturday
+        };
+        const nodeDayOfWeek = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+        icon = FUTURE_DAY_ICONS[nodeDayOfWeek] || "📅";
+        tooltip = 'Future Planning Locked';
       }
 
       const xOffset = Math.sin(index * 1.1) * 65;
@@ -261,7 +262,6 @@ export function renderPath(container) {
 
       return `
         <div class="path-node-wrapper" style="transform: translateX(${node.xOffset}px);">
-          ${node.isToday ? `<div class="owl-avatar-path">🦉</div>` : ''}
           ${node.isToday ? `
             <div class="today-progress-ring-container" style="width: 90px; height: 80px; ${inlineStyle}"></div>
             <button class="day-node node-active" data-date="${node.dateStr}" title="${node.tooltip}">
@@ -338,17 +338,7 @@ export function renderPath(container) {
     renderMascotWidget(mascotBox, mood);
   }
 
-  // Bind honesty close button
-  const closeHonestyBtn = container.querySelector('#close-honesty-banner-btn');
-  if (closeHonestyBtn) {
-    closeHonestyBtn.onclick = () => {
-      const banner = container.querySelector('#path-honesty-banner-container');
-      if (banner) banner.remove();
-      const p = getProfile();
-      p.lastHonestyReminderDate = new Date().toISOString();
-      saveProfile(p);
-    };
-  }
+
 
   // --- STICKY UNIT HEADER SCROLL LISTENER ---
   const viewport = document.querySelector('.view-viewport');
@@ -362,23 +352,23 @@ export function renderPath(container) {
     stickyTitleText.textContent = sec.name;
     stickyGuideBtn.setAttribute('data-week', sec.num);
 
-    let themeColor = 'var(--duo-red)';
+    let gradient = 'linear-gradient(135deg, var(--duo-red) 0%, var(--duo-orange) 100%)';
     let themeColorBottom = 'var(--duo-red-bottom)';
     if (sec.theme === 'green') {
-      themeColor = 'var(--duo-green)';
+      gradient = 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%)';
       themeColorBottom = 'var(--duo-green-bottom)';
     } else if (sec.theme === 'blue') {
-      themeColor = 'var(--duo-blue)';
+      gradient = 'linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-purple) 100%)';
       themeColorBottom = 'var(--duo-blue-bottom)';
     } else if (sec.theme === 'gold') {
-      themeColor = 'var(--duo-gold)';
+      gradient = 'linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%)';
       themeColorBottom = 'var(--duo-gold-bottom)';
     } else if (sec.theme === 'orange') {
-      themeColor = 'var(--duo-orange)';
+      gradient = 'linear-gradient(135deg, var(--duo-orange) 0%, var(--duo-red) 100%)';
       themeColorBottom = 'var(--duo-orange-bottom)';
     }
     
-    stickyBanner.style.backgroundColor = themeColor;
+    stickyBanner.style.background = gradient;
     stickyBanner.style.boxShadow = `0 6px 0 ${themeColorBottom}`;
 
     // Dynamically update the top stats bar active section number

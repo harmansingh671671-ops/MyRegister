@@ -3,17 +3,22 @@ import { showConfirm } from './notifications.js';
 import { renderIntegrityPanel } from './integrity.js';
 
 export function renderSettings(container) {
+  const profile = getProfile();
+  const maxStreak = profile.highestStreak || profile.streak || 0;
+
   container.innerHTML = `
     <div class="view-header">
-      <h2>⚙️ Settings & Configuration</h2>
-      <p class="subtitle">Customize accountability reasons and manage local database backups.</p>
+      <h2 class="view-main-title">⚙️ Settings</h2>
+      <p class="view-main-sub">Configure account preferences, customize schedule reasons, and backup logs</p>
+      <div class="view-progress-pill">
+        <span>Highest Streak Record: <strong>🔥 ${maxStreak} days</strong></span>
+      </div>
     </div>
 
     <div class="settings-layout-grid">
       <!-- Left Box: Profile Card -->
       <div class="card card-3d">
         <h3>👤 Account Profile</h3>
-        <p class="hint">Your personal details and priority goals saved in this local profile.</p>
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div><strong>Name:</strong> <span id="profile-display-name"></span></div>
           <div><strong>Date of Birth:</strong> <span id="profile-display-dob"></span></div>
@@ -31,7 +36,6 @@ export function renderSettings(container) {
       <!-- Center Box: Custom Reasons -->
       <div class="card card-3d">
         <h3>🧠 Custom Miss Reasons</h3>
-        <p class="hint">Create reasons you actually experience. This removes app judgment and keeps reflection highly personal.</p>
         
         <div class="settings-reasons-wrapper">
           <ul id="settings-reasons-list" class="reasons-list-ui">
@@ -43,27 +47,28 @@ export function renderSettings(container) {
             <button type="submit" class="btn btn-primary btn-3d">Add</button>
           </form>
         </div>
-      </div>
-
-      <!-- Right Box: Data Controls -->
-      <div class="card card-3d">
-        <h3>📂 Data Ownership & Privacy</h3>
-        <p class="hint">Download or restore all database records. Tempo runs entirely in your sandbox browser.</p>
-        
-        <div class="settings-backup-controls" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
-          <button id="settings-export-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
-          
-          <div class="import-wrapper">
-            <label for="settings-import-input" class="btn btn-secondary btn-3d btn-full btn-import-label">⬆️ Import Backup</label>
-            <input type="file" id="settings-import-input" accept=".json" style="display: none;">
-          </div>
-
-          <button id="settings-wipe-btn" class="btn btn-danger btn-3d btn-full btn-sm">🗑️ Permanently Wipe All Data</button>
-        </div>
-      </div>
     </div>
     <!-- Device Integrity Simulator -->
     <div id="settings-integrity-container" style="margin-top: 20px;"></div>
+
+    <!-- Bottom Box: Data Controls -->
+    <div class="card card-3d" style="margin-top: 20px;">
+      <h3>📂 Data Ownership & Privacy</h3>
+      <div class="privacy-note-badge" style="background: var(--bg-hover); border: 2px solid var(--border-color); padding: 8px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-bottom: 16px;">
+        <span>🔒 Runs 100% locally in your browser sandbox.</span>
+      </div>
+      
+      <div class="settings-backup-controls" style="display:flex; flex-direction:column; gap:12px; margin-top:20px;">
+        <button id="settings-export-btn" class="btn btn-secondary btn-3d btn-full">⬇️ Export Backup (JSON)</button>
+        
+        <div class="import-wrapper">
+          <label for="settings-import-input" class="btn btn-secondary btn-3d btn-full btn-import-label">⬆️ Import Backup</label>
+          <input type="file" id="settings-import-input" accept=".json" style="display: none;">
+        </div>
+
+        <button id="settings-wipe-btn" class="btn btn-danger btn-3d btn-full btn-sm">🗑️ Permanently Wipe All Data</button>
+      </div>
+    </div>
   `;
 
   const listContainer = container.querySelector('#settings-reasons-list');
@@ -140,7 +145,7 @@ export function renderSettings(container) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tempo_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `odyssey_backup_${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   });

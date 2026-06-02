@@ -1,5 +1,5 @@
 // App.js - Main application entry point with error handling
-import { initStorage, getProfile, calculateIntegrityHealth, saveProfile } from './modules/storage.js';
+import { initStorage, getProfile, calculateIntegrityHealth, saveProfile, getYetToCreditDiamonds, autoLockPastDays } from './modules/storage.js';
 import { renderOnboarding } from './modules/onboarding.js';
 import { renderPath } from './modules/path.js';
 import { renderAnalytics } from './modules/analytics.js';
@@ -7,11 +7,14 @@ import { renderShop, syncAppTheme } from './modules/shop.js';
 import { renderSettings } from './modules/settings.js';
 import { requestNotificationPermission, showToast } from './modules/notifications.js';
 import { calculateMilitaryRank, openRanksModal, RANKS } from './modules/ranks.js';
+import { renderSocial } from './modules/social_v2.js'; // inder branch: Social Tab
+import { renderLearn } from './modules/learn.js';   // inder branch: Learn Tab
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
     // 1. Initialize local database
     initStorage();
+    autoLockPastDays();
     calculateIntegrityHealth();
     calculateMilitaryRank();
 
@@ -47,7 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
       path: document.getElementById('view-path'),
       stats: document.getElementById('view-stats'),
       shop: document.getElementById('view-shop'),
-      settings: document.getElementById('view-settings')
+      settings: document.getElementById('view-settings'),
+      social: document.getElementById('view-social'),   // inder branch: Social Tab
+      learn:  document.getElementById('view-learn')      // inder branch: Learn Tab
     };
 
     const navLinks = document.querySelectorAll('.nav-link');
@@ -112,6 +117,12 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'settings':
             renderSettings(views.settings);
             break;
+          case 'social': // inder branch: Social Tab
+            renderSocial(views.social);
+            break;
+          case 'learn': // inder branch: Learn Tab
+            renderLearn(views.learn);
+            break;
         }
 
         sessionStorage.setItem('tempo_current_view', viewName);
@@ -137,14 +148,16 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Sync pills when profile changes
-    window.addEventListener('tempo_profile_changed', () => {
+    // Sync pills when profile or logs change
+    const triggerUpdate = () => {
       try {
         updateHeaderPills();
       } catch (e) {
         console.error('Header update error:', e);
       }
-    });
+    };
+    window.addEventListener('tempo_profile_changed', triggerUpdate);
+    window.addEventListener('tempo_logs_changed', triggerUpdate);
 
     function updateHeaderPills() {
       try {
@@ -154,7 +167,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const levels = document.querySelectorAll('.header-level-val');
 
         streaks.forEach(el => el.textContent = Math.max(0, profile.streak));
-        diamonds.forEach(el => el.textContent = Math.max(0, profile.diamonds));
+        
+        // Render diamonds as x+y
+        const yetToCredit = getYetToCreditDiamonds();
+        diamonds.forEach(el => el.textContent = `${Math.max(0, profile.diamonds)}+${yetToCredit}`);
 
         const activeRankName = profile.militaryRank || 'Civilian';
         const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];

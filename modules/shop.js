@@ -5,18 +5,36 @@ import { playUnlockSound } from './notifications.js';
 export function renderShop(container) {
   const profile = getProfile();
 
+  // Count customizations unlocked (25 total items in shop)
+  const totalCustomizations = 25;
+  const unlockedCount = 4 // defaults (slate theme, owl mascot, standard outfit, standard sound)
+    + (profile.unlockedThemes || []).length
+    + (profile.unlockedMascots || []).length
+    + (profile.unlockedOutfits || []).length
+    + (profile.unlockedSounds || []).length
+    + (profile.unlockedBadges || []).length;
+  const pct = Math.round((unlockedCount / totalCustomizations) * 100);
+
   container.innerHTML = `
     <div class="view-header">
-      <h2>🛒 Tempo Shop</h2>
-      <p class="subtitle">Spend your diamonds to customize themes, unlock companion pets, buy outfits, or freeze streaks.</p>
+      <h2 class="view-main-title">🛒 Shop</h2>
+      <p class="view-main-sub">Unlock rewards, custom themes, and accountability shields</p>
+      <div class="view-progress-pill">
+        <span>${unlockedCount} / ${totalCustomizations} customizations unlocked</span>
+        <div class="view-progress-bar">
+          <div class="view-progress-fill" style="width: ${pct}%"></div>
+        </div>
+      </div>
     </div>
 
     <div class="shop-dashboard-layout" style="display:flex; flex-direction:column; gap:16px;">
       <!-- Balance Card -->
-      <div class="card card-3d shop-balance-banner">
-        <span>Current Balance:</span>
-        <h2 style="margin: 5px 0;">💎 <span id="shop-tab-diamond-val">${profile.diamonds}</span></h2>
-        <p class="hint">Earn diamonds by planning, executing, and honestly reflecting on your schedules.</p>
+      <div class="card card-3d shop-balance-banner" style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; background: linear-gradient(135deg, var(--duo-blue), var(--duo-blue-bottom)); color: white; border: none;">
+        <span style="font-weight: 700; font-size: 14px;">🛍️ Odyssey Shop Balance</span>
+        <div style="font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 4px;">
+          <span>💎</span>
+          <span id="shop-tab-diamond-val">${profile.diamonds}</span>
+        </div>
       </div>
 
       <!-- Section 1: Streak Utilities -->
@@ -46,9 +64,8 @@ export function renderShop(container) {
       <!-- Section 2: App Themes -->
       <div class="card card-3d">
         <h3>🎨 App Style Themes</h3>
-        <p class="hint">Changes the colors of your simulated phone background and buttons.</p>
         <div class="shop-grid">
-          ${renderCosmeticItem("Theme", "default", "default", "Tempo Slate", "🌑", 0, profile)}
+          ${renderCosmeticItem("Theme", "default", "default", "Odyssey Slate", "🌑", 0, profile)}
           ${renderCosmeticItem("Theme", "cyberpunk", "unlockedThemes", "Cyberpunk Neon", "🌌", 30, profile)}
           ${renderCosmeticItem("Theme", "forest", "unlockedThemes", "Autumn Forest", "🍁", 20, profile)}
           ${renderCosmeticItem("Theme", "sakura", "unlockedThemes", "Sakura Pink", "🌸", 20, profile)}
@@ -58,9 +75,8 @@ export function renderShop(container) {
       <!-- Section 3: Mascot Companions -->
       <div class="card card-3d">
         <h3>🐻 Mascot Species</h3>
-        <p class="hint">Unlock different animals to coach you on your dashboard.</p>
         <div class="shop-grid">
-          ${renderCosmeticItem("Mascot", "owl", "default", "Tempo Owl", "🦉", 0, profile)}
+          ${renderCosmeticItem("Mascot", "owl", "default", "Odyssey Owl", "🦉", 0, profile)}
           ${renderCosmeticItem("Mascot", "bear", "unlockedMascots", "Focus Bear", "🐻", 25, profile)}
           ${renderCosmeticItem("Mascot", "cat", "unlockedMascots", "Smart Cat", "🐱", 25, profile)}
         </div>
@@ -69,19 +85,23 @@ export function renderShop(container) {
       <!-- Section 4: Mascot Outfits -->
       <div class="card card-3d">
         <h3>👔 Mascot Skins & Outfits</h3>
-        <p class="hint">Give your mascot companion some personality style.</p>
         <div class="shop-grid">
           ${renderCosmeticItem("Outfit", "none", "default", "Standard Look", "👕", 0, profile)}
           ${renderCosmeticItem("Outfit", "suit", "unlockedOutfits", "Suit & Tie", "👔", 15, profile)}
           ${renderCosmeticItem("Outfit", "astronaut", "unlockedOutfits", "Astronaut Suit", "🧑‍🚀", 20, profile)}
           ${renderCosmeticItem("Outfit", "visor", "unlockedOutfits", "Cyberpunk Visor", "🕶️", 20, profile)}
+          ${renderCosmeticItem("Outfit", "ninja", "unlockedOutfits", "Ninja Suit", "🥷", 25, profile)}
+          ${renderCosmeticItem("Outfit", "cowboy", "unlockedOutfits", "Cowboy Hat", "🤠", 25, profile)}
+          ${renderCosmeticItem("Outfit", "wizard", "unlockedOutfits", "Wizard Robe", "🧙", 30, profile)}
+          ${renderCosmeticItem("Outfit", "detective", "unlockedOutfits", "Detective Coat", "🕵️", 20, profile)}
+          ${renderCosmeticItem("Outfit", "chef", "unlockedOutfits", "Chef Hat", "🧑‍🍳", 20, profile)}
+          ${renderCosmeticItem("Outfit", "superhero", "unlockedOutfits", "Superhero Cape", "🦸", 30, profile)}
         </div>
       </div>
 
       <!-- Section 5: Audio Chime Packs -->
       <div class="card card-3d">
         <h3>🔊 Audio Chime Packs</h3>
-        <p class="hint">Custom synthesized audio frequencies when completing schedule tasks.</p>
         <div class="shop-grid">
           ${renderCosmeticItem("Sound", "default", "default", "Standard Chime", "🔔", 0, profile)}
           ${renderCosmeticItem("Sound", "scifi", "unlockedSounds", "Sci-Fi Beep", "📡", 10, profile)}

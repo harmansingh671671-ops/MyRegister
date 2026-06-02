@@ -151,54 +151,64 @@ export function renderDashboard(container) {
     <!-- SHOP MODAL (Hidden by default) -->
     <div id="shop-modal" class="fullscreen-modal hidden">
       <div class="modal-backdrop" id="shop-backdrop"></div>
-      <div class="shop-card card-3d animate-pop">
-        <div class="shop-header">
-          <h2>🛒 Tempo Shop</h2>
-          <button id="close-shop-btn" class="btn-close">&times;</button>
-        </div>
-        <div class="shop-diamonds">
-          <span>Your Balance: <strong>💎 <span id="shop-diamond-val">${profile.diamonds}</span></strong></span>
-        </div>
-        <div class="shop-grid">
-          <!-- Item 1: Streak Repair -->
-          <div class="shop-item card-3d">
-            <div class="item-badge">RESCUE</div>
-            <div class="item-icon">🔧</div>
-            <h4>Streak Repair Kit</h4>
-            <p>Restores a broken streak. <strong>Requires honest reflection logging.</strong></p>
-            <button class="btn btn-primary btn-3d btn-full buy-item-btn" data-item="repair" data-cost="50">Buy for 50 💎</button>
-          </div>
-          <!-- Item 2: Streak Freeze -->
-          <div class="shop-item card-3d">
-            <div class="item-badge">SHIELD</div>
-            <div class="item-icon">❄️</div>
-            <h4>Streak Freeze</h4>
-            <p>Protects your streak for tomorrow if you forget to check in.</p>
-            <button class="btn btn-primary btn-3d btn-full buy-item-btn" data-item="freeze" data-cost="30">Buy for 30 💎</button>
+      <div class="modal-card shop-card card-3d animate-pop">
+        <div class="modal-hero" style="background: linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-orange) 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
+          <button class="btn-back" id="close-shop-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </button>
+          <div>
+            <span class="modal-date-title" style="margin: 0; font-size: 16px; font-weight: 800; display: block; line-height: 1.2;">🛒 Odyssey Shop</span>
+            <div style="font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 600;">
+              Your Balance: 💎 <span id="shop-diamond-val">${profile.diamonds}</span>
+            </div>
           </div>
         </div>
+        
+        <div class="modal-body-scroll" style="padding: 16px 20px 24px;">
+          <div class="shop-grid">
+            <!-- Item 1: Streak Repair -->
+            <div class="shop-item card-3d">
+              <div class="item-badge">RESCUE</div>
+              <div class="item-icon">🔧</div>
+              <h4>Streak Repair Kit</h4>
+              <p>Restores a broken streak. <strong>Requires honest reflection logging.</strong></p>
+              <button class="btn btn-primary btn-3d btn-full buy-item-btn" data-item="repair" data-cost="50">Buy for 50 💎</button>
+            </div>
+            <!-- Item 2: Streak Freeze -->
+            <div class="shop-item card-3d">
+              <div class="item-badge">SHIELD</div>
+              <div class="item-icon">❄️</div>
+              <h4>Streak Freeze</h4>
+              <p>Protects your streak for tomorrow if you forget to check in.</p>
+              <button class="btn btn-primary btn-3d btn-full buy-item-btn" data-item="freeze" data-cost="30">Buy for 30 💎</button>
+            </div>
+          </div>
 
-        <h3>🛡️ Unlockable Badges</h3>
-        <div class="shop-badges-grid">
-          <div class="badge-item card-3d" data-badge="Deep Worker">
-            <span class="badge-icon">📖</span>
-            <h5>Deep Worker</h5>
-            <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Deep Worker" data-cost="10">10 💎</button>
-          </div>
-          <div class="badge-item card-3d" data-badge="Honest Scribe">
-            <span class="badge-icon">✍️</span>
-            <h5>Honest Scribe</h5>
-            <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Honest Scribe" data-cost="15">15 💎</button>
-          </div>
-          <div class="badge-item card-3d" data-badge="Early Riser">
-            <span class="badge-icon">🌅</span>
-            <h5>Early Riser</h5>
-            <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Early Riser" data-cost="10">10 💎</button>
-          </div>
-          <div class="badge-item card-3d" data-badge="Integrity Champion">
-            <span class="badge-icon">👑</span>
-            <h5>Integrity Champion</h5>
-            <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Integrity Champion" data-cost="25">25 💎</button>
+          <h3 style="font-family: var(--font-header); font-size: 16px; font-weight: 800; margin: 15px 0 10px;">🛡️ Unlockable Badges</h3>
+          <div class="shop-badges-grid">
+            <div class="badge-item card-3d" data-badge="Deep Worker">
+              <span class="badge-icon">📖</span>
+              <h5>Deep Worker</h5>
+              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Deep Worker" data-cost="10">10 💎</button>
+            </div>
+            <div class="badge-item card-3d" data-badge="Honest Scribe">
+              <span class="badge-icon">✍️</span>
+              <h5>Honest Scribe</h5>
+              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Honest Scribe" data-cost="15">15 💎</button>
+            </div>
+            <div class="badge-item card-3d" data-badge="Early Riser">
+              <span class="badge-icon">🌅</span>
+              <h5>Early Riser</h5>
+              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Early Riser" data-cost="10">10 💎</button>
+            </div>
+            <div class="badge-item card-3d" data-badge="Integrity Champion">
+              <span class="badge-icon">👑</span>
+              <h5>Integrity Champion</h5>
+              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Integrity Champion" data-cost="25">25 💎</button>
+            </div>
           </div>
         </div>
       </div>

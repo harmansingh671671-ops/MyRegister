@@ -16,7 +16,6 @@ export function renderPlanner(container) {
   container.innerHTML = `
     <div class="view-header">
       <h2>📝 Plan Your Tomorrow</h2>
-      <p class="subtitle">Set your intentions hour-by-hour. Be realistic and align focus with your energy levels.</p>
     </div>
 
     <div class="planner-layout">

@@ -80,9 +80,26 @@ function validateProfile(profile) {
   validated.goals = Array.isArray(profile.goals) ? profile.goals.filter(g => typeof g === 'object') : [];
   validated.weekNames = (typeof profile.weekNames === 'object' && profile.weekNames !== null) ? profile.weekNames : {};
   validated.unlockedThemes = Array.isArray(profile.unlockedThemes) ? profile.unlockedThemes : ['default'];
-  validated.equippedTheme = ['default', 'dark', 'ocean', 'forest'].includes(profile.equippedTheme) ? profile.equippedTheme : 'default';
+  validated.equippedTheme = ['default', 'cyberpunk', 'forest', 'sakura', 'dark', 'ocean'].includes(profile.equippedTheme) ? profile.equippedTheme : 'default';
   validated.militaryRank = sanitizeString(profile.militaryRank || 'Civilian');
   validated.leagueTier = ['Bronze', 'Silver', 'Gold', 'Diamond'].includes(profile.leagueTier) ? profile.leagueTier : 'Bronze';
+  
+  // Customizations and additional arrays
+  validated.unlockedBadges = Array.isArray(profile.unlockedBadges) ? profile.unlockedBadges : [];
+  validated.equippedBadge = profile.equippedBadge ? sanitizeString(profile.equippedBadge) : null;
+  validated.maxDailyXP = Math.max(0, Math.floor(profile.maxDailyXP || 0));
+  
+  validated.unlockedMascots = Array.isArray(profile.unlockedMascots) ? profile.unlockedMascots : ['owl'];
+  validated.equippedMascot = ['owl', 'bear', 'cat'].includes(profile.equippedMascot) ? profile.equippedMascot : 'owl';
+  
+  validated.unlockedOutfits = Array.isArray(profile.unlockedOutfits) ? profile.unlockedOutfits : ['none'];
+  validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor', 'ninja', 'cowboy', 'wizard', 'detective', 'chef', 'superhero'].includes(profile.equippedOutfit) ? profile.equippedOutfit : 'none';
+  
+  validated.unlockedSounds = Array.isArray(profile.unlockedSounds) ? profile.unlockedSounds : ['default'];
+  validated.equippedSound = ['default', 'scifi', 'zen', 'retro'].includes(profile.equippedSound) ? profile.equippedSound : 'default';
+  
+  validated.weeklyLeaderboard = Array.isArray(profile.weeklyLeaderboard) ? profile.weeklyLeaderboard : [];
+  validated.violationLog = Array.isArray(profile.violationLog) ? profile.violationLog : [];
   
   // Preserve dates
   validated.lastPlanDate = sanitizeString(profile.lastPlanDate || '');
@@ -92,6 +109,22 @@ function validateProfile(profile) {
   validated.lastHonestyReminderDate = sanitizeString(profile.lastHonestyReminderDate || '');
   
   return validated;
+}
+
+export function requestPersistentStorage() {
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then((persisted) => {
+      if (!persisted) {
+        navigator.storage.persist().then((granted) => {
+          if (granted) {
+            console.log('Storage persistence granted.');
+          } else {
+            console.log('Storage persistence denied.');
+          }
+        }).catch(err => console.error('Error requesting persistence:', err));
+      }
+    }).catch(err => console.error('Error checking persistence:', err));
+  }
 }
 
 export function initStorage() {
@@ -105,6 +138,7 @@ export function initStorage() {
     if (!localStorage.getItem(REASONS_KEY)) {
       localStorage.setItem(REASONS_KEY, JSON.stringify(DEFAULT_MISS_REASONS));
     }
+    requestPersistentStorage();
   } catch (e) {
     console.error('Error initializing storage:', e);
   }
@@ -185,27 +219,97 @@ export function removeCustomReason(reason) {
   }
 }
 
+function mapSlotsToBlocks(slots) {
+  try {
+    if (!Array.isArray(slots)) return [];
+    const blocks = [];
+    slots.forEach((slot, index) => {
+      if (index === 0) return; // skip satisfaction
+      if (slot && typeof slot.text === 'string' && slot.text.trim() !== "") {
+        const parts = slot.time.split('-');
+        if (parts.length === 2) {
+          const startStr = parts[0];
+          const endStr = parts[1];
+          const start = `${startStr.substring(0, 2)}:${startStr.substring(2)}`;
+          const end = `${endStr.substring(0, 2)}:${endStr.substring(2)}`;
+          blocks.push({
+            id: `slot-${index}`,
+            startTime: start,
+            endTime: end,
+            title: slot.text.trim(),
+            category: "Work",
+            difficulty: "easy",
+            status: slot.status || "pending",
+            loggedAt: slot.loggedAt || new Date().toISOString()
+          });
+        }
+      }
+    });
+    return blocks;
+  } catch (e) {
+    console.error('Error mapping slots to blocks:', e);
+    return [];
+  }
+}
+
 export function getDay(dateStr) {
   initStorage();
   try {
     // Validate date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
       console.warn('Invalid date format:', dateStr);
-      return { date: dateStr, blocks: [], isCommitted: false, isReviewed: false };
+      return { date: dateStr, blocks: [], slots: [], isCommitted: false, isReviewed: false };
     }
     
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
-    return logs[dateStr] || {
+    const log = logs[dateStr] || {
       date: dateStr,
       blocks: [],
       isCommitted: false,
       isReviewed: false
     };
+
+    // Initialize slots if missing
+    if (!log.slots || log.slots.length !== 25) {
+      log.slots = [
+        { time: "0000-2400", text: "Satisfaction", status: "none" }
+      ];
+      for (let h = 0; h < 24; h++) {
+        const start = String(h).padStart(2, '0') + "00";
+        const end = String(h + 1).padStart(2, '0') + "00";
+        log.slots.push({
+          time: `${start}-${end}`,
+          text: "",
+          status: "pending"
+        });
+      }
+      
+      // Migrate existing blocks if any (for backward compatibility)
+      if (Array.isArray(log.blocks) && log.blocks.length > 0) {
+        log.blocks.forEach(b => {
+          if (b && typeof b.startTime === 'string') {
+            const parts = b.startTime.split(':');
+            if (parts.length >= 1) {
+              const sh = parseInt(parts[0]);
+              const slotIdx = sh + 1;
+              if (slotIdx >= 1 && slotIdx <= 24) {
+                log.slots[slotIdx].text = b.title || "";
+                log.slots[slotIdx].status = b.status || "pending";
+                log.slots[slotIdx].loggedAt = b.loggedAt || new Date().toISOString();
+              }
+            }
+          }
+        });
+      }
+    }
+
+    return log;
   } catch (e) {
     console.error('Error reading day:', e);
     return {
       date: dateStr,
       blocks: [],
+      slots: [],
       isCommitted: false,
       isReviewed: false
     };
@@ -220,6 +324,25 @@ export function saveDay(dateStr, dayLog) {
       return;
     }
     
+    // Map slots to blocks for compatibility
+    dayLog.blocks = mapSlotsToBlocks(dayLog.slots);
+    
+// Import XP reward function
+import { addXp } from './gamification.js';
+
+    // Automatically set isCommitted if there is any scheduled hourly text
+    if (Array.isArray(dayLog.slots)) {
+      dayLog.isCommitted = dayLog.slots.slice(1).some(s => s && typeof s.text === 'string' && s.text.trim() !== "");
+      if (dayLog.isCommitted) {
+        // Reward 10 XP for creating a schedule
+        try {
+          addXp(10);
+        } catch (e) {
+          console.error('Failed to add XP:', e);
+        }
+      }
+    }
+
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
     logs[dateStr] = dayLog;
     localStorage.setItem(DAY_LOGS_KEY, JSON.stringify(logs));
@@ -313,3 +436,154 @@ export function importJSON(jsonStr) {
     return false;
   }
 }
+
+export function getYetToCreditDiamonds() {
+  initStorage();
+  try {
+    const days = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
+    let yetToCredit = 0;
+    for (const dateStr in days) {
+      const dayLog = days[dateStr];
+      if (dayLog && !dayLog.isReviewed && Array.isArray(dayLog.slots)) {
+        // Count slots marked as completed or missed (excluding satisfaction index 0)
+        yetToCredit += dayLog.slots.slice(1).filter(s => s.status === 'completed' || s.status === 'missed').length;
+        // Count fitness steps bonus if any
+        yetToCredit += (dayLog.stepBonusDiamonds || 0);
+      }
+    }
+    return yetToCredit;
+  } catch (e) {
+    console.error('Error calculating yet-to-credit diamonds:', e);
+    return 0;
+  }
+}
+
+export function autoLockPastDays() {
+  try {
+    const profile = getProfile();
+    let startDateStr = profile.lastReviewDate || profile.createdDate;
+    
+    if (!startDateStr) {
+      const days = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
+      const dates = Object.keys(days).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
+      if (dates.length > 0) {
+        startDateStr = dates[0];
+      }
+    }
+    
+    if (!startDateStr) return;
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayDate = new Date(todayStr + 'T00:00:00Z');
+    const startDate = new Date(startDateStr + 'T00:00:00Z');
+    
+    const checkDate = new Date(startDate.getTime());
+    checkDate.setUTCDate(checkDate.getUTCDate() + 1);
+    
+    let profileUpdated = false;
+    
+    while (true) {
+      const dateStr = checkDate.toISOString().split('T')[0];
+      if (dateStr >= todayStr) {
+        break;
+      }
+      
+      const dayLog = getDay(dateStr);
+      
+      if (!dayLog.isReviewed) {
+        // Calculate yesterday of checkDate for streak verification
+        const yesterdayOfCheckDate = new Date(checkDate.getTime());
+        yesterdayOfCheckDate.setUTCDate(yesterdayOfCheckDate.getUTCDate() - 1);
+        const yesterdayOfCheckDateStr = yesterdayOfCheckDate.toISOString().split('T')[0];
+        
+        // 1. Streak verification / update
+        if (dayLog.isCommitted) {
+          // User committed a schedule: streak remains intact
+          if (profile.lastReviewDate === yesterdayOfCheckDateStr) {
+            profile.streak += 1;
+          } else if (profile.lastReviewDate === dateStr) {
+            // Already reviewed this date (should be skipped since !isReviewed, but just in case)
+          } else {
+            // Not consecutive, starts new streak
+            profile.streak = 1;
+          }
+          
+          if (profile.streak > profile.highestStreak) {
+            profile.highestStreak = profile.streak;
+          }
+          
+          // Check milestone reward
+          const milestoneKey = `streak_${profile.streak}`;
+          if ([7, 15, 30].includes(profile.streak) && !profile.milestonesClaimed.includes(milestoneKey)) {
+            profile.milestonesClaimed.push(milestoneKey);
+            const rewardAmt = profile.streak === 7 ? 10 : profile.streak === 15 ? 25 : 50;
+            profile.diamonds += rewardAmt;
+          }
+        } else {
+          // User did NOT commit a schedule: streak breaks/lost
+          if (profile.streak > 0) {
+            if (profile.streakFreezeActive) {
+              profile.streakFreezeActive = false;
+            } else {
+              profile.streak = 0;
+            }
+          }
+        }
+        
+        // 2. Diamond crediting for committed day
+        if (dayLog.isCommitted) {
+          // Auto-resolve pending hourly slots to missed
+          if (Array.isArray(dayLog.slots)) {
+            dayLog.slots.slice(1).forEach(slot => {
+              if (slot && slot.text && slot.text.trim() !== "" && slot.status === 'pending') {
+                slot.status = 'missed';
+                slot.missReason = "Auto-logged as missed";
+                slot.loggedAt = new Date().toISOString();
+              }
+            });
+          }
+          
+          // Recalculate day's diamonds
+          const dayDiamonds = dayLog.slots.slice(1).filter(s => s.status === 'completed' || s.status === 'missed').length + (dayLog.stepBonusDiamonds || 0);
+          profile.diamonds += dayDiamonds;
+        }
+        
+        // 3. Mark day as reviewed & save day log
+        dayLog.isReviewed = true;
+        saveDay(dateStr, dayLog);
+        
+        // Update lastReviewDate to the dateStr we just processed
+        profile.lastReviewDate = dateStr;
+        profileUpdated = true;
+      }
+      
+      checkDate.setUTCDate(checkDate.getUTCDate() + 1);
+    }
+    
+    if (profileUpdated) {
+      saveProfile(profile);
+    }
+  } catch (e) {
+    console.error('Error auto locking past days:', e);
+  }
+}
+
+export function getSocialData() {
+  try {
+    const raw = localStorage.getItem('tempo_social_feed');
+    if (!raw) return { friends: [], posts: [], notifications: [] };
+    return JSON.parse(raw);
+  } catch (e) {
+    console.error('[Storage] Error reading social data:', e);
+    return { friends: [], posts: [], notifications: [] };
+  }
+}
+
+export function saveSocialData(data) {
+  try {
+    localStorage.setItem('tempo_social_feed', JSON.stringify(data));
+  } catch (e) {
+    console.error('[Storage] Error saving social data:', e);
+  }
+}
+
