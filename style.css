@@ -3993,7 +3993,7 @@ canvas {
 .learn-book-spine {
   flex-shrink: 0;
   width: 54px;
-  min-height: 160px;
+  height: 180px;
   border-radius: 4px 0 0 4px;
   padding: 12px 4px;
   display: flex;
