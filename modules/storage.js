@@ -1,6 +1,8 @@
 // Modules/storage.js
 // Core data persistence layer with validation and error handling
 
+import { addXp } from './gamification.js';
+
 const PROFILE_KEY = 'tempo_user_profile';
 const DAY_LOGS_KEY = 'tempo_day_logs';
 const REASONS_KEY = 'tempo_custom_reasons';
@@ -327,8 +329,6 @@ export function saveDay(dateStr, dayLog) {
     // Map slots to blocks for compatibility
     dayLog.blocks = mapSlotsToBlocks(dayLog.slots);
     
-// Import XP reward function
-import { addXp } from './gamification.js';
 
     // Automatically set isCommitted if there is any scheduled hourly text
     if (Array.isArray(dayLog.slots)) {
