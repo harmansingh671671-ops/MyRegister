@@ -1,6 +1,8 @@
 // Modules/storage.js
 // Core data persistence layer with validation and error handling
 
+import { addXp } from './gamification.js';
+
 const PROFILE_KEY = 'tempo_user_profile';
 const DAY_LOGS_KEY = 'tempo_day_logs';
 const REASONS_KEY = 'tempo_custom_reasons';
@@ -58,7 +60,7 @@ function sanitizeString(str) {
 
 function validateProfile(profile) {
   const validated = { ...DEFAULT_PROFILE };
-  
+
   if (typeof profile !== 'object' || profile === null) {
     return validated;
   }
@@ -74,7 +76,7 @@ function validateProfile(profile) {
   validated.highestStreak = Math.max(0, Math.floor(profile.highestStreak || 0));
   validated.hasCompletedOnboarding = Boolean(profile.hasCompletedOnboarding);
   validated.streakFreezeActive = Boolean(profile.streakFreezeActive);
-  
+
   // Validate arrays and objects
   validated.milestonesClaimed = Array.isArray(profile.milestonesClaimed) ? profile.milestonesClaimed : [];
   validated.goals = Array.isArray(profile.goals) ? profile.goals.filter(g => typeof g === 'object') : [];
@@ -83,31 +85,31 @@ function validateProfile(profile) {
   validated.equippedTheme = ['default', 'cyberpunk', 'forest', 'sakura', 'dark', 'ocean'].includes(profile.equippedTheme) ? profile.equippedTheme : 'default';
   validated.militaryRank = sanitizeString(profile.militaryRank || 'Civilian');
   validated.leagueTier = ['Bronze', 'Silver', 'Gold', 'Diamond'].includes(profile.leagueTier) ? profile.leagueTier : 'Bronze';
-  
+
   // Customizations and additional arrays
   validated.unlockedBadges = Array.isArray(profile.unlockedBadges) ? profile.unlockedBadges : [];
   validated.equippedBadge = profile.equippedBadge ? sanitizeString(profile.equippedBadge) : null;
   validated.maxDailyXP = Math.max(0, Math.floor(profile.maxDailyXP || 0));
-  
+
   validated.unlockedMascots = Array.isArray(profile.unlockedMascots) ? profile.unlockedMascots : ['owl'];
   validated.equippedMascot = ['owl', 'bear', 'cat'].includes(profile.equippedMascot) ? profile.equippedMascot : 'owl';
-  
+
   validated.unlockedOutfits = Array.isArray(profile.unlockedOutfits) ? profile.unlockedOutfits : ['none'];
   validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor', 'ninja', 'cowboy', 'wizard', 'detective', 'chef', 'superhero'].includes(profile.equippedOutfit) ? profile.equippedOutfit : 'none';
-  
+
   validated.unlockedSounds = Array.isArray(profile.unlockedSounds) ? profile.unlockedSounds : ['default'];
   validated.equippedSound = ['default', 'scifi', 'zen', 'retro'].includes(profile.equippedSound) ? profile.equippedSound : 'default';
-  
+
   validated.weeklyLeaderboard = Array.isArray(profile.weeklyLeaderboard) ? profile.weeklyLeaderboard : [];
   validated.violationLog = Array.isArray(profile.violationLog) ? profile.violationLog : [];
-  
+
   // Preserve dates
   validated.lastPlanDate = sanitizeString(profile.lastPlanDate || '');
   validated.lastReviewDate = sanitizeString(profile.lastReviewDate || '');
   validated.createdDate = sanitizeString(profile.createdDate || '');
   validated.lastLeagueReset = sanitizeString(profile.lastLeagueReset || '');
   validated.lastHonestyReminderDate = sanitizeString(profile.lastHonestyReminderDate || '');
-  
+
   return validated;
 }
 
@@ -149,7 +151,7 @@ export function getProfile() {
   try {
     const stored = localStorage.getItem(PROFILE_KEY);
     if (!stored) return { ...DEFAULT_PROFILE };
-    
+
     const prof = JSON.parse(stored);
     return validateProfile(prof);
   } catch (e) {
@@ -173,7 +175,7 @@ export function getCustomReasons() {
   try {
     const stored = localStorage.getItem(REASONS_KEY);
     if (!stored) return [...DEFAULT_MISS_REASONS];
-    
+
     const reasons = JSON.parse(stored);
     return Array.isArray(reasons) ? reasons : [...DEFAULT_MISS_REASONS];
   } catch (e) {
@@ -260,7 +262,7 @@ export function getDay(dateStr) {
       console.warn('Invalid date format:', dateStr);
       return { date: dateStr, blocks: [], slots: [], isCommitted: false, isReviewed: false };
     }
-    
+
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
     const log = logs[dateStr] || {
       date: dateStr,
@@ -283,7 +285,7 @@ export function getDay(dateStr) {
           status: "pending"
         });
       }
-      
+
       // Migrate existing blocks if any (for backward compatibility)
       if (Array.isArray(log.blocks) && log.blocks.length > 0) {
         log.blocks.forEach(b => {
@@ -323,12 +325,9 @@ export function saveDay(dateStr, dayLog) {
       console.warn('Invalid date format:', dateStr);
       return;
     }
-    
+
     // Map slots to blocks for compatibility
     dayLog.blocks = mapSlotsToBlocks(dayLog.slots);
-    
-// Import XP reward function
-import { addXp } from './gamification.js';
 
     // Automatically set isCommitted if there is any scheduled hourly text
     if (Array.isArray(dayLog.slots)) {
@@ -358,7 +357,7 @@ export function calculateIntegrityHealth() {
   try {
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
     const entries = [];
-    
+
     for (const date in logs) {
       if (logs[date] && Array.isArray(logs[date].blocks)) {
         logs[date].blocks.forEach(block => {
@@ -420,12 +419,12 @@ export function exportJSON() {
 export function importJSON(jsonStr) {
   try {
     if (typeof jsonStr !== 'string') return false;
-    
+
     const data = JSON.parse(jsonStr);
     if (!data.profile || !data.customReasons || !data.dayLogs) {
       return false;
     }
-    
+
     localStorage.setItem(PROFILE_KEY, JSON.stringify(validateProfile(data.profile)));
     localStorage.setItem(REASONS_KEY, JSON.stringify(data.customReasons));
     localStorage.setItem(DAY_LOGS_KEY, JSON.stringify(data.dayLogs));
@@ -462,7 +461,7 @@ export function autoLockPastDays() {
   try {
     const profile = getProfile();
     let startDateStr = profile.lastReviewDate || profile.createdDate;
-    
+
     if (!startDateStr) {
       const days = JSON.parse(localStorage.getItem(DAY_LOGS_KEY)) || {};
       const dates = Object.keys(days).filter(d => /^\d{4}-\d{2}-\d{2}$/.test(d)).sort();
@@ -470,32 +469,32 @@ export function autoLockPastDays() {
         startDateStr = dates[0];
       }
     }
-    
+
     if (!startDateStr) return;
-    
+
     const todayStr = new Date().toISOString().split('T')[0];
     const todayDate = new Date(todayStr + 'T00:00:00Z');
     const startDate = new Date(startDateStr + 'T00:00:00Z');
-    
+
     const checkDate = new Date(startDate.getTime());
     checkDate.setUTCDate(checkDate.getUTCDate() + 1);
-    
+
     let profileUpdated = false;
-    
+
     while (true) {
       const dateStr = checkDate.toISOString().split('T')[0];
       if (dateStr >= todayStr) {
         break;
       }
-      
+
       const dayLog = getDay(dateStr);
-      
+
       if (!dayLog.isReviewed) {
         // Calculate yesterday of checkDate for streak verification
         const yesterdayOfCheckDate = new Date(checkDate.getTime());
         yesterdayOfCheckDate.setUTCDate(yesterdayOfCheckDate.getUTCDate() - 1);
         const yesterdayOfCheckDateStr = yesterdayOfCheckDate.toISOString().split('T')[0];
-        
+
         // 1. Streak verification / update
         if (dayLog.isCommitted) {
           // User committed a schedule: streak remains intact
@@ -507,11 +506,11 @@ export function autoLockPastDays() {
             // Not consecutive, starts new streak
             profile.streak = 1;
           }
-          
+
           if (profile.streak > profile.highestStreak) {
             profile.highestStreak = profile.streak;
           }
-          
+
           // Check milestone reward
           const milestoneKey = `streak_${profile.streak}`;
           if ([7, 15, 30].includes(profile.streak) && !profile.milestonesClaimed.includes(milestoneKey)) {
@@ -529,7 +528,7 @@ export function autoLockPastDays() {
             }
           }
         }
-        
+
         // 2. Diamond crediting for committed day
         if (dayLog.isCommitted) {
           // Auto-resolve pending hourly slots to missed
@@ -542,24 +541,24 @@ export function autoLockPastDays() {
               }
             });
           }
-          
+
           // Recalculate day's diamonds
           const dayDiamonds = dayLog.slots.slice(1).filter(s => s.status === 'completed' || s.status === 'missed').length + (dayLog.stepBonusDiamonds || 0);
           profile.diamonds += dayDiamonds;
         }
-        
+
         // 3. Mark day as reviewed & save day log
         dayLog.isReviewed = true;
         saveDay(dateStr, dayLog);
-        
+
         // Update lastReviewDate to the dateStr we just processed
         profile.lastReviewDate = dateStr;
         profileUpdated = true;
       }
-      
+
       checkDate.setUTCDate(checkDate.getUTCDate() + 1);
     }
-    
+
     if (profileUpdated) {
       saveProfile(profile);
     }
