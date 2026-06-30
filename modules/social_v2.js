@@ -91,25 +91,23 @@ function renderAuthScreen(container) {
       <form id="auth-form" style="display: flex; flex-direction: column; gap: 12px;">
         <div id="signup-fields" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
           <input type="text" id="auth-name" class="social-modal-input" placeholder="Your Display Name" style="width: 100%;" />
-          <div style="position: relative; display: flex; align-items: center;">
-            <span style="position: absolute; left: 12px; font-weight: 700; color: var(--text-hint);">@</span>
-            <input type="text" id="auth-username" class="social-modal-input" placeholder="unique_username" style="width: 100%; padding-left: 28px;" />
-          </div>
         </div>
-        <input type="email" id="auth-email" class="social-modal-input" placeholder="Email Address" required style="width: 100%;" />
+        <div style="position: relative; display: flex; align-items: center;" id="username-field-wrapper">
+          <span style="position: absolute; left: 12px; font-weight: 700; color: var(--text-hint);">@</span>
+          <input type="text" id="auth-username" class="social-modal-input" placeholder="username" required maxlength="15" style="width: 100%; padding-left: 28px;" />
+        </div>
+        <input type="email" id="auth-email" class="social-modal-input hidden" placeholder="Email Address" style="width: 100%;" />
         <input type="password" id="auth-password" class="social-modal-input" placeholder="Password (min 6 characters)" required style="width: 100%;" />
         
         <button type="submit" class="btn btn-primary btn-3d btn-full" id="auth-submit-btn" style="margin-top: 10px;">Log In 🚀</button>
       </form>
-
-      <div style="text-align: center; margin: 15px 0; color: var(--text-hint); font-size: 12px;">— OR —</div>
-      <button class="btn btn-secondary btn-3d btn-full" id="auth-anonymous-btn">⚡ Instant Guest Access</button>
     </div>
   `;
 
   const tabLogin = container.querySelector('#tab-login');
   const tabSignup = container.querySelector('#tab-signup');
   const signupFields = container.querySelector('#signup-fields');
+  const emailInput = container.querySelector('#auth-email');
   const authSubmitBtn = container.querySelector('#auth-submit-btn');
   const authForm = container.querySelector('#auth-form');
   const usernameInput = container.querySelector('#auth-username');
@@ -126,8 +124,10 @@ function renderAuthScreen(container) {
     tabSignup.classList.remove('active');
     tabSignup.style.color = 'var(--text-hint)';
     signupFields.classList.add('hidden');
+    emailInput.classList.add('hidden');
+    emailInput.required = false;
     authSubmitBtn.textContent = 'Log In 🚀';
-    usernameInput.required = false;
+    usernameInput.placeholder = 'username';
   };
 
   tabSignup.onclick = () => {
@@ -137,22 +137,25 @@ function renderAuthScreen(container) {
     tabLogin.classList.remove('active');
     tabLogin.style.color = 'var(--text-hint)';
     signupFields.classList.remove('hidden');
+    emailInput.classList.remove('hidden');
+    emailInput.required = true;
     authSubmitBtn.textContent = 'Sign Up 🎉';
-    usernameInput.required = true;
+    usernameInput.placeholder = 'unique_username';
   };
 
   authForm.onsubmit = async (e) => {
     e.preventDefault();
-    const email = container.querySelector('#auth-email').value.trim();
+    const username = usernameInput.value.trim().toLowerCase();
     const password = container.querySelector('#auth-password').value;
-    const name = container.querySelector('#auth-name').value.trim();
-    const username = usernameInput.value.trim();
 
     authSubmitBtn.disabled = true;
     authSubmitBtn.textContent = 'Processing...';
 
     try {
       if (isSignUp) {
+        const name = container.querySelector('#auth-name').value.trim();
+        const email = emailInput.value.trim();
+
         if (username.length < 3) {
           throw new Error("Username must be at least 3 characters.");
         }
@@ -181,13 +184,25 @@ function renderAuthScreen(container) {
         if (session && session.user) {
           await supabase
             .from('profiles')
-            .update({ username, display_name: name || 'New Player' })
+            .update({ username, display_name: name || 'New Player', email })
             .eq('id', session.user.id);
         }
 
         showToast("Registration successful! 🎉", "success");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        // Look up email by username
+        const { data: profile, error: queryError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('username', username)
+          .maybeSingle();
+
+        if (queryError) throw queryError;
+        if (!profile || !profile.email) {
+          throw new Error("Username not found! ❌");
+        }
+
+        const { error } = await supabase.auth.signInWithPassword({ email: profile.email, password });
         if (error) throw error;
         showToast("Welcome back!", "success");
       }
@@ -196,22 +211,6 @@ function renderAuthScreen(container) {
       showToast(err.message, "error");
       authSubmitBtn.disabled = false;
       authSubmitBtn.textContent = isSignUp ? 'Sign Up 🎉' : 'Log In 🚀';
-    }
-  };
-
-  container.querySelector('#auth-anonymous-btn').onclick = async () => {
-    const btn = container.querySelector('#auth-anonymous-btn');
-    btn.disabled = true;
-    btn.textContent = 'Connecting...';
-    try {
-      const { error } = await supabase.auth.signInAnonymously();
-      if (error) throw error;
-      showToast("Signed in as Guest!", "success");
-      checkUserSession(container);
-    } catch (err) {
-      showToast(err.message, "error");
-      btn.disabled = false;
-      btn.textContent = '⚡ Instant Guest Access';
     }
   };
 }
