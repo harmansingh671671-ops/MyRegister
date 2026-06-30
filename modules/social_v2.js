@@ -184,8 +184,12 @@ function renderAuthScreen(container) {
         if (session && session.user) {
           await supabase
             .from('profiles')
-            .update({ username, display_name: name || 'New Player', email })
-            .eq('id', session.user.id);
+            .upsert({
+              id: session.user.id,
+              username,
+              display_name: name || 'New Player',
+              email
+            });
         }
 
         showToast("Registration successful! 🎉", "success");
@@ -229,12 +233,19 @@ function renderUsernameSetup(container, user) {
         </div>
         <button type="submit" class="btn btn-primary btn-3d btn-full" id="username-submit-btn">Set Username & Begin 🚀</button>
       </form>
+      <button class="btn btn-secondary btn-3d btn-full btn-sm" id="username-logout-btn" style="margin-top: 10px; background: var(--bg-hover); border-color: var(--border-color);">🚪 Log Out of Account</button>
     </div>
   `;
 
   const usernameForm = container.querySelector('#username-form');
   const input = container.querySelector('#username-input');
   const submitBtn = container.querySelector('#username-submit-btn');
+
+  container.querySelector('#username-logout-btn').onclick = async () => {
+    await supabase.auth.signOut();
+    showToast("Logged out.", "info");
+    renderSocial(container);
+  };
 
   // Prevent invalid characters
   input.oninput = () => {
@@ -269,15 +280,16 @@ function renderUsernameSetup(container, user) {
         return;
       }
 
-      // Claim username
+      // Claim username using upsert
       const localProf = getProfile();
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ 
+        .upsert({ 
+          id: user.id,
           username,
-          display_name: localProf.name || 'Player'
-        })
-        .eq('id', user.id);
+          display_name: localProf.name || 'Player',
+          email: user.email
+        });
 
       if (updateError) throw updateError;
 
