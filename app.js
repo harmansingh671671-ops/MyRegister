@@ -9,6 +9,8 @@ import { requestNotificationPermission, showToast } from './modules/notification
 import { calculateMilitaryRank, openRanksModal, RANKS } from './modules/ranks.js';
 import { renderSocial } from './modules/social_v2.js'; // inder branch: Social Tab
 import { renderLearn } from './modules/learn.js';   // inder branch: Learn Tab
+import { supabase } from './modules/supabase.js';
+import { renderAuthScreen } from './modules/auth.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -52,17 +54,22 @@ document.addEventListener('DOMContentLoaded', () => {
       shop: document.getElementById('view-shop'),
       settings: document.getElementById('view-settings'),
       social: document.getElementById('view-social'),   // inder branch: Social Tab
-      learn:  document.getElementById('view-learn')      // inder branch: Learn Tab
+      learn:  document.getElementById('view-learn'),      // inder branch: Learn Tab
+      auth:   document.getElementById('view-auth')
     };
 
     const navLinks = document.querySelectorAll('.nav-link');
+
+    let currentSession = null;
 
     function navigateTo(viewName) {
       try {
         const profile = getProfile();
         
-        // Redirect to onboarding if not completed
-        if (!profile.hasCompletedOnboarding) {
+        // Redirect if auth/onboarding is missing
+        if (!currentSession) {
+          viewName = 'auth';
+        } else if (!profile.hasCompletedOnboarding) {
           viewName = 'onboarding';
         }
 
@@ -90,12 +97,16 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
 
-        // Toggle bottom nav visibility
+        // Toggle bottom nav & header visibility
         const bottomNav = document.querySelector('.mobile-bottom-nav');
-        if (viewName === 'onboarding') {
+        const mobileHeader = document.querySelector('.mobile-header');
+        
+        if (viewName === 'onboarding' || viewName === 'auth') {
           if (bottomNav) bottomNav.classList.add('hidden');
+          if (mobileHeader && viewName === 'auth') mobileHeader.classList.add('hidden');
         } else {
           if (bottomNav) bottomNav.classList.remove('hidden');
+          if (mobileHeader) mobileHeader.classList.remove('hidden');
         }
 
         // Render the view
@@ -103,6 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
           case 'onboarding':
             renderOnboarding(views.onboarding, () => {
               navigateTo('path');
+            });
+            break;
+          case 'auth':
+            renderAuthScreen(views.auth, () => {
+              const prof = getProfile();
+              navigateTo(prof.hasCompletedOnboarding ? (sessionStorage.getItem('tempo_current_view') || 'path') : 'onboarding');
             });
             break;
           case 'path':
@@ -206,14 +223,29 @@ document.addEventListener('DOMContentLoaded', () => {
     updateSimulatorTime();
     setInterval(updateSimulatorTime, 1000);
 
-    // Navigate to last viewed tab or default
-    const profile = getProfile();
-    const currentView = profile.hasCompletedOnboarding
-      ? (sessionStorage.getItem('tempo_current_view') || 'path')
-      : 'onboarding';
-    
-    navigateTo(currentView);
-    updateHeaderPills();
+    // Initialize session checking and auth listener
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      currentSession = session;
+      const profile = getProfile();
+      const defaultView = currentSession 
+        ? (profile.hasCompletedOnboarding ? (sessionStorage.getItem('tempo_current_view') || 'path') : 'onboarding')
+        : 'auth';
+      navigateTo(defaultView);
+      updateHeaderPills();
+    });
+
+    supabase.auth.onAuthStateChange((event, session) => {
+      currentSession = session;
+      const profile = getProfile();
+      if (!session) {
+        navigateTo('auth');
+      } else {
+        const currentView = views.auth && !views.auth.classList.contains('hidden')
+          ? (profile.hasCompletedOnboarding ? (sessionStorage.getItem('tempo_current_view') || 'path') : 'onboarding')
+          : null;
+        if (currentView) navigateTo(currentView);
+      }
+    });
   } catch (e) {
     console.error('Critical initialization error:', e);
     showToast('Failed to initialize app. Please refresh.', 'error');

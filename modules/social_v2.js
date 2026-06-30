@@ -40,7 +40,7 @@ async function checkUserSession(container) {
   try {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      renderAuthScreen(container);
+      container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-hint);">Please log in to access social features.</div>`;
     } else {
       // Check if user has completed profile setup and has a username
       const { data: profile, error } = await supabase
@@ -74,149 +74,6 @@ async function checkUserSession(container) {
     `;
     container.querySelector('#retry-session-btn').onclick = () => renderSocial(container);
   }
-}
-
-// --- AUTHENTICATION SCREEN ---
-function renderAuthScreen(container) {
-  container.innerHTML = `
-    <div class="social-auth-card card-3d animate-pop" style="max-width: 380px; margin: 20px auto; padding: 25px;">
-      <h2 style="font-family: var(--font-header); text-align: center; margin-bottom: 6px;">👥 Odyssey Squad</h2>
-      <p class="hint" style="text-align: center; margin-bottom: 20px;">Connect with friends, track streaks, and build habits together.</p>
-      
-      <div class="auth-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px;">
-        <button class="auth-tab-btn active" id="tab-login" style="flex: 1; padding: 10px; background: none; border: none; font-weight: 700; color: var(--text-color); cursor: pointer;">Log In</button>
-        <button class="auth-tab-btn" id="tab-signup" style="flex: 1; padding: 10px; background: none; border: none; font-weight: 700; color: var(--text-hint); cursor: pointer;">Sign Up</button>
-      </div>
-
-      <form id="auth-form" style="display: flex; flex-direction: column; gap: 12px;">
-        <div id="signup-fields" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
-          <input type="text" id="auth-name" class="social-modal-input" placeholder="Your Display Name" style="width: 100%;" />
-        </div>
-        <div style="position: relative; display: flex; align-items: center;" id="username-field-wrapper">
-          <span style="position: absolute; left: 12px; font-weight: 700; color: var(--text-hint);">@</span>
-          <input type="text" id="auth-username" class="social-modal-input" placeholder="username" required maxlength="15" style="width: 100%; padding-left: 28px;" />
-        </div>
-        <input type="email" id="auth-email" class="social-modal-input hidden" placeholder="Email Address" style="width: 100%;" />
-        <input type="password" id="auth-password" class="social-modal-input" placeholder="Password (min 6 characters)" required style="width: 100%;" />
-        
-        <button type="submit" class="btn btn-primary btn-3d btn-full" id="auth-submit-btn" style="margin-top: 10px;">Log In 🚀</button>
-      </form>
-    </div>
-  `;
-
-  const tabLogin = container.querySelector('#tab-login');
-  const tabSignup = container.querySelector('#tab-signup');
-  const signupFields = container.querySelector('#signup-fields');
-  const emailInput = container.querySelector('#auth-email');
-  const authSubmitBtn = container.querySelector('#auth-submit-btn');
-  const authForm = container.querySelector('#auth-form');
-  const usernameInput = container.querySelector('#auth-username');
-  let isSignUp = false;
-
-  usernameInput.oninput = () => {
-    usernameInput.value = usernameInput.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
-  };
-
-  tabLogin.onclick = () => {
-    isSignUp = false;
-    tabLogin.classList.add('active');
-    tabLogin.style.color = 'var(--text-color)';
-    tabSignup.classList.remove('active');
-    tabSignup.style.color = 'var(--text-hint)';
-    signupFields.classList.add('hidden');
-    emailInput.classList.add('hidden');
-    emailInput.required = false;
-    authSubmitBtn.textContent = 'Log In 🚀';
-    usernameInput.placeholder = 'username';
-  };
-
-  tabSignup.onclick = () => {
-    isSignUp = true;
-    tabSignup.classList.add('active');
-    tabSignup.style.color = 'var(--text-color)';
-    tabLogin.classList.remove('active');
-    tabLogin.style.color = 'var(--text-hint)';
-    signupFields.classList.remove('hidden');
-    emailInput.classList.remove('hidden');
-    emailInput.required = true;
-    authSubmitBtn.textContent = 'Sign Up 🎉';
-    usernameInput.placeholder = 'unique_username';
-  };
-
-  authForm.onsubmit = async (e) => {
-    e.preventDefault();
-    const username = usernameInput.value.trim().toLowerCase();
-    const password = container.querySelector('#auth-password').value;
-
-    authSubmitBtn.disabled = true;
-    authSubmitBtn.textContent = 'Processing...';
-
-    try {
-      if (isSignUp) {
-        const name = container.querySelector('#auth-name').value.trim();
-        const email = emailInput.value.trim();
-
-        if (username.length < 3) {
-          throw new Error("Username must be at least 3 characters.");
-        }
-
-        // Check availability
-        const { data: taken, error: checkError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('username', username)
-          .maybeSingle();
-
-        if (checkError) throw checkError;
-        if (taken) {
-          throw new Error("Username already taken! ❌");
-        }
-
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { data: { name: name || 'New Player', username } }
-        });
-        if (error) throw error;
-        
-        // Sync profile table immediately (if automatically signed in)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session && session.user) {
-          await supabase
-            .from('profiles')
-            .upsert({
-              id: session.user.id,
-              username,
-              display_name: name || 'New Player',
-              email
-            });
-        }
-
-        showToast("Registration successful! 🎉", "success");
-      } else {
-        // Look up email by username
-        const { data: profile, error: queryError } = await supabase
-          .from('profiles')
-          .select('email')
-          .eq('username', username)
-          .maybeSingle();
-
-        if (queryError) throw queryError;
-        if (!profile || !profile.email) {
-          throw new Error("Username not found! ❌");
-        }
-
-        const { error } = await supabase.auth.signInWithPassword({ email: profile.email, password });
-        if (error) throw error;
-        showToast("Welcome back!", "success");
-      }
-      checkUserSession(container);
-    } catch (err) {
-      showToast(err.message, "error");
-      authSubmitBtn.disabled = false;
-      authSubmitBtn.textContent = isSignUp ? 'Sign Up 🎉' : 'Log In 🚀';
-    }
-  };
 }
 
 // --- USERNAME SETUP ---
@@ -449,24 +306,8 @@ async function renderFeedTab(viewport, userProfile, container) {
     if (error) throw error;
 
     viewport.innerHTML = `
-      <!-- Composer -->
-      <div class="social-composer card-3d" style="margin-bottom: 20px; padding: 15px;">
-        <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
-          <span style="font-size: 24px;">🎯</span>
-          <textarea id="composer-text" placeholder="Share your accomplishments with your squad... 🚀" maxlength="200" style="flex:1; background:var(--bg-dark); border:2px solid var(--border-color); color:var(--text-color); border-radius:8px; padding:8px; font-family:inherit; font-size:13px; resize:none;" rows="2"></textarea>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-          <div style="display:flex; gap:4px;">
-            ${['🔥', '🎯', '💪', '📚', '😌', '🌟'].map(m => `
-              <button class="mood-btn" data-mood="${m}" style="background:none; border:2px solid transparent; border-radius:6px; cursor:pointer; font-size:16px; padding:2px 6px;">${m}</button>
-            `).join('')}
-          </div>
-          <button class="btn btn-primary btn-3d btn-sm" id="post-submit-btn">Post</button>
-        </div>
-      </div>
-
       <!-- Feed List -->
-      <div class="feed-posts-list" style="display:flex; flex-direction:column; gap:12px;">
+      <div class="feed-posts-list" style="display:flex; flex-direction:column; gap:12px; margin-bottom: 75px;">
         ${posts.length === 0 ? `
           <div style="text-align:center; padding:30px; color:var(--text-hint);">
             <p>Your squad feed is empty. Post a check-in or add friends to see updates!</p>
@@ -513,25 +354,19 @@ async function renderFeedTab(viewport, userProfile, container) {
           `;
         }).join('')}
       </div>
-    `;
 
-    // Bind Mood Selector
-    let selectedMood = '🎯';
-    const moodBtns = viewport.querySelectorAll('.mood-btn');
-    moodBtns.forEach(btn => {
-      if (btn.dataset.mood === selectedMood) btn.style.borderColor = 'var(--duo-blue)';
-      btn.onclick = () => {
-        moodBtns.forEach(b => b.style.borderColor = 'transparent');
-        btn.style.borderColor = 'var(--duo-blue)';
-        selectedMood = btn.dataset.mood;
-      };
-    });
+      <!-- Sleek Bottom Composer -->
+      <div class="social-bottom-composer card-3d" style="position: sticky; bottom: 0; background: var(--bg-surface); border-top: 2px solid var(--border-color); padding: 10px 15px; margin: 15px -15px -15px -15px; z-index: 10; display: flex; gap: 10px; align-items: center; box-shadow: 0 -5px 15px rgba(0,0,0,0.15);">
+        <input type="text" id="composer-text" placeholder="Share your accomplishments... 🚀" maxlength="200" style="flex:1; background:var(--bg-dark); border:2px solid var(--border-color); color:var(--text-color); border-radius:24px; padding:8px 16px; font-family:inherit; font-size:13px;" />
+        <button class="btn btn-primary btn-3d btn-sm" id="post-submit-btn" style="padding: 8px 16px; border-radius: 20px;">Post</button>
+      </div>
+    `;
 
     // Bind Post Submission
     const submitBtn = viewport.querySelector('#post-submit-btn');
-    const textarea = viewport.querySelector('#composer-text');
+    const inputField = viewport.querySelector('#composer-text');
     submitBtn.onclick = async () => {
-      const text = textarea.value.trim();
+      const text = inputField.value.trim();
       if (!text) return;
       submitBtn.disabled = true;
       submitBtn.textContent = 'Posting...';
@@ -540,7 +375,7 @@ async function renderFeedTab(viewport, userProfile, container) {
         const { error } = await supabase.from('posts').insert({
           user_id: userProfile.id,
           text,
-          mood: selectedMood
+          mood: '🎯' // default mood
         });
         if (error) throw error;
         showToast("Check-in posted! 🚀", "success");
