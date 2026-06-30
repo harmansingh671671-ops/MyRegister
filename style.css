@@ -3282,8 +3282,11 @@ canvas {
   transition: color 0.2s ease, border-color 0.2s ease;
   margin-bottom: -2px;
 }
-.social-tab-btn:hover { color: var(--text-primary); }
-.social-tab-btn--active { color: var(--text-primary); border-bottom-color: var(--duo-blue); }
+.social-tab-btn:hover { color: var(--text-color); }
+.social-tab-btn.active, .social-tab-btn--active {
+  color: var(--text-color) !important;
+  border-bottom-color: var(--duo-blue) !important;
+}
 
 /* ── Trending Tags ── */
 .social-trending-tags {

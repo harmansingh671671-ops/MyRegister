@@ -173,22 +173,14 @@ async function renderMainSocialFeed(container, userProfile) {
   // Clean outer container and prepare layouts
   container.innerHTML = `
     <div class="social-view">
-      <!-- Header -->
-      <div class="social-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 12px; border-bottom: 2px solid var(--border-color);">
-        <div>
-          <h2 class="social-title" style="margin:0;">👥 Squad Feed</h2>
-          <span style="font-size:12px; color:var(--text-hint);">@${userProfile.username}</span>
+      <!-- Navigation Tabs & Log Out -->
+      <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid var(--border-color); padding-bottom: 8px; margin-bottom: 15px;">
+        <div class="social-feed-tabs" style="display:flex; gap: 16px;">
+          <button class="social-tab-btn active" data-tab="feed" style="background:none; border:none; color:var(--text-color); font-weight:700; font-size:14px; cursor:pointer; padding: 4px 0; position:relative;">Feed</button>
+          <button class="social-tab-btn" data-tab="squad" style="background:none; border:none; color:var(--text-hint); font-weight:700; font-size:14px; cursor:pointer; padding: 4px 0; position:relative;">Squad</button>
+          <button class="social-tab-btn" data-tab="pending" id="pending-tab-btn" style="background:none; border:none; color:var(--text-hint); font-weight:700; font-size:14px; cursor:pointer; padding: 4px 0; position:relative;">Requests</button>
         </div>
-        <div style="display:flex; gap:10px; align-items:center;">
-          <button class="social-bell-btn" id="logout-btn" title="Log Out" style="background:none; border:none; font-size: 18px; cursor:pointer;">🚪</button>
-        </div>
-      </div>
-
-      <!-- Navigation Tabs -->
-      <div class="social-feed-tabs" style="display:flex; gap: 8px; margin: 15px 0;">
-        <button class="social-tab-btn active" data-tab="feed" style="flex:1;">Feed</button>
-        <button class="social-tab-btn" data-tab="squad">Squad</button>
-        <button class="social-tab-btn" data-tab="pending" id="pending-tab-btn">Requests</button>
+        <button id="logout-btn" title="Log Out" style="background:none; border:none; font-size: 16px; cursor:pointer; color: var(--text-hint);">🚪</button>
       </div>
 
       <!-- Core Display Window -->
@@ -211,8 +203,12 @@ async function renderMainSocialFeed(container, userProfile) {
   // Bind tab switching
   tabs.forEach(btn => {
     btn.onclick = () => {
-      tabs.forEach(b => b.classList.remove('active'));
+      tabs.forEach(b => {
+        b.classList.remove('active');
+        b.style.color = 'var(--text-hint)';
+      });
       btn.classList.add('active');
+      btn.style.color = 'var(--text-color)';
       activeTab = btn.getAttribute('data-tab');
       renderTabContent(viewport, activeTab, userProfile, container);
     };
@@ -306,59 +302,62 @@ async function renderFeedTab(viewport, userProfile, container) {
     if (error) throw error;
 
     viewport.innerHTML = `
+      <!-- Sleek Inline Composer at Top -->
+      <div class="social-top-composer" style="background: var(--bg-surface); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center;">
+        <div style="font-size: 22px; background: var(--bg-hover); border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+          <span>🦉</span>
+        </div>
+        <input type="text" id="composer-text" placeholder="Share your accomplishments... 🚀" maxlength="200" style="flex:1; background:var(--bg-dark); border:1.5px solid var(--border-color); color:var(--text-color); border-radius:20px; padding:8px 14px; font-family:inherit; font-size:13px; outline:none;" />
+        <button class="btn btn-primary btn-3d btn-sm" id="post-submit-btn" style="padding: 6px 14px; border-radius: 16px; font-size: 12px; margin: 0;">Post</button>
+      </div>
+
       <!-- Feed List -->
-      <div class="feed-posts-list" style="display:flex; flex-direction:column; gap:12px; margin-bottom: 75px;">
+      <div class="feed-posts-list" style="display:flex; flex-direction:column;">
         ${posts.length === 0 ? `
-          <div style="text-align:center; padding:30px; color:var(--text-hint);">
+          <div style="text-align:center; padding:40px 20px; color:var(--text-hint);">
             <p>Your squad feed is empty. Post a check-in or add friends to see updates!</p>
           </div>
         ` : posts.map(p => {
           const isOwn = p.user_id === userProfile.id;
           const author = p.profiles;
           return `
-            <div class="tw-post card-3d" data-post-id="${p.id}" style="padding:15px; display:flex; gap:12px;">
-              <div class="social-avatar--clickable" data-username="${author.username}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;">
-                <div style="font-size: 28px; background:var(--bg-dark); border:2px solid var(--border-color); border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; position:relative;">
+            <div class="tw-post" data-post-id="${p.id}" style="padding: 16px 0; border-bottom: 1.5px solid var(--border-color); display: flex; gap: 12px;">
+              <div class="social-avatar--clickable" data-username="${author.username}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start; flex-shrink:0;">
+                <div style="font-size: 24px; background:var(--bg-dark); border:1.5px solid var(--border-color); border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; position:relative;">
                   <span>${author.avatar_mascot === 'bear' ? '🐻' : author.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
                 </div>
-                ${author.equipped_badge ? `<span style="font-size:11px; margin-top:4px;">${author.equipped_badge.substring(0,2)}</span>` : ''}
+                ${author.equipped_badge ? `<span style="font-size:10px; margin-top:4px; opacity:0.8;">${author.equipped_badge.substring(0,2)}</span>` : ''}
               </div>
-              <div style="flex:1;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <div style="flex:1; min-width: 0;">
+                <div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:4px;">
                   <div>
-                    <span style="font-weight:700; font-size:13px;">${author.display_name}</span>
-                    <span style="color:var(--text-hint); font-size:11px; margin-left:4px;">@${author.username}</span>
+                    <span style="font-weight:700; font-size:14px; color:var(--text-color);">${author.display_name}</span>
+                    <span style="color:var(--text-hint); font-size:12px; margin-left:6px;">@${author.username}</span>
                   </div>
                   <span style="color:var(--text-hint); font-size:11px;">${formatTimeAgo(p.created_at)}</span>
                 </div>
-                <p style="font-size:13px; margin:0 0 8px 0; line-height:1.4;">${p.mood} ${p.text}</p>
-                <div style="display:flex; gap:15px; align-items:center; color:var(--text-hint);">
-                  <button class="post-like-btn" data-post-id="${p.id}" style="background:none; border:none; color:var(--text-hint); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                <p style="font-size:14px; margin:0 0 10px 0; line-height:1.5; color:var(--text-color); word-wrap: break-word;">${p.mood} ${p.text}</p>
+                <div style="display:flex; gap:20px; align-items:center;">
+                  <button class="post-like-btn" data-post-id="${p.id}" style="background:none; border:none; color:var(--text-hint); font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:0;">
                     ❤️ React
                   </button>
-                  <button class="post-comment-toggle" data-post-id="${p.id}" style="background:none; border:none; color:var(--text-hint); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                  <button class="post-comment-toggle" data-post-id="${p.id}" style="background:none; border:none; color:var(--text-hint); font-size:13px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:0;">
                     💬 Comment
                   </button>
                 </div>
                 
                 <!-- Comment Box -->
-                <div class="comment-section hidden" id="comments-${p.id}" style="margin-top:10px; border-top:1px solid var(--border-color); padding-top:8px;">
-                  <div class="replies-list" id="replies-list-${p.id}" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
-                  <div style="display:flex; gap:6px;">
-                    <input type="text" class="comment-input" placeholder="Write a reply..." style="flex:1; font-size:11px; background:var(--bg-dark); border:2px solid var(--border-color); border-radius:6px; padding:4px 8px; color:var(--text-color);" />
-                    <button class="btn btn-secondary btn-3d btn-sm submit-comment-btn" data-post-id="${p.id}" style="padding:4px 10px; font-size:11px;">Reply</button>
+                <div class="comment-section hidden" id="comments-${p.id}" style="margin-top:12px; background:var(--bg-dark); border-radius:12px; padding:12px;">
+                  <div class="replies-list" id="replies-list-${p.id}" style="display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
+                  <div style="display:flex; gap:8px;">
+                    <input type="text" class="comment-input" placeholder="Write a reply..." style="flex:1; font-size:12px; background:var(--bg-hover); border:1.5px solid var(--border-color); border-radius:18px; padding:6px 12px; color:var(--text-color); outline:none;" />
+                    <button class="btn btn-secondary btn-3d btn-sm submit-comment-btn" data-post-id="${p.id}" style="padding:4px 12px; font-size:11px; border-radius:14px;">Reply</button>
                   </div>
                 </div>
               </div>
             </div>
           `;
         }).join('')}
-      </div>
-
-      <!-- Sleek Bottom Composer -->
-      <div class="social-bottom-composer card-3d" style="position: sticky; bottom: 0; background: var(--bg-surface); border-top: 2px solid var(--border-color); padding: 10px 15px; margin: 15px -15px -15px -15px; z-index: 10; display: flex; gap: 10px; align-items: center; box-shadow: 0 -5px 15px rgba(0,0,0,0.15);">
-        <input type="text" id="composer-text" placeholder="Share your accomplishments... 🚀" maxlength="200" style="flex:1; background:var(--bg-dark); border:2px solid var(--border-color); color:var(--text-color); border-radius:24px; padding:8px 16px; font-family:inherit; font-size:13px;" />
-        <button class="btn btn-primary btn-3d btn-sm" id="post-submit-btn" style="padding: 8px 16px; border-radius: 20px;">Post</button>
       </div>
     `;
 
