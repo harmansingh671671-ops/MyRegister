@@ -21,6 +21,7 @@ export function renderSettings(container) {
         <h3>👤 Account Profile</h3>
         <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
           <div><strong>Name:</strong> <span id="profile-display-name"></span></div>
+          <div><strong>Username:</strong> <span id="profile-display-username"></span></div>
           <div><strong>Date of Birth:</strong> <span id="profile-display-dob"></span></div>
           <div><strong>Account Created:</strong> <span id="profile-display-created"></span></div>
           <div style="margin-top: 10px;">
@@ -78,6 +79,7 @@ export function renderSettings(container) {
   const renderProfileInfo = () => {
     const profile = getProfile();
     container.querySelector('#profile-display-name').textContent = profile.name || 'Not set';
+    container.querySelector('#profile-display-username').textContent = profile.username ? '@' + profile.username : 'Not set';
     container.querySelector('#profile-display-dob').textContent = profile.dob || 'Not set';
     container.querySelector('#profile-display-created').textContent = profile.createdDate || 'Not set';
 
