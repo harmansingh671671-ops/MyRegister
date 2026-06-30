@@ -283,6 +283,9 @@ function renderPerformanceView(container) {
 
 // VIEW 2: WEEKLY LEAGUE VIEW
 function renderLeagueView(container) {
+  // Check if Sunday night has passed and trigger league reset
+  checkLeagueEndOfWeek();
+
   // Sync bot scores and fetch leaderboard
   updateLeaderboard();
   const profile = getProfile();
@@ -335,20 +338,7 @@ function renderLeagueView(container) {
         }).join('')}
       </div>
     </div>
-
-    <!-- Simulator debug section -->
-    <div class="card card-3d league-debug-card" style="text-align: center; border-color: var(--duo-blue);">
-      <h4>⚙️ Simulator Debug Panel</h4>
-      <p class="hint">Manually end the league week to trigger promotions, demotions, and diamond rewards instantly.</p>
-      <button class="btn btn-primary btn-3d btn-sm btn-full" id="debug-end-week-btn" style="margin-top:10px;">⚡ Simulate Weekly League Reset</button>
-    </div>
   `;
-
-  // Bind weekly reset debug button
-  container.querySelector('#debug-end-week-btn').addEventListener('click', () => {
-    checkLeagueEndOfWeek(true); // force reset
-    renderLeagueView(container); // reload
-  });
 }
 
 // VIEW 3: HABITS CHAIN & HEATMAP VIEW

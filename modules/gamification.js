@@ -95,14 +95,22 @@ export function updateLeaderboard() {
 export function checkLeagueEndOfWeek(force = false) {
   const profile = getProfile();
   
-  // Calculate if 7 days elapsed since last reset
+  // Check if Sunday night has passed since lastLeagueReset
   const now = new Date();
   const resetDate = profile.lastLeagueReset ? new Date(profile.lastLeagueReset) : new Date();
-  const diffTime = Math.abs(now - resetDate);
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   
-  if (diffDays < 7 && !force) {
-    return; // Not yet time
+  // Calculate Sunday night of the week of resetDate
+  const day = resetDate.getDay(); // 0 is Sunday, 1-6 is Monday-Saturday
+  const daysToSunday = day === 0 ? 0 : 7 - day;
+  const sundayNightOfResetWeek = new Date(resetDate.getTime());
+  sundayNightOfResetWeek.setDate(resetDate.getDate() + daysToSunday);
+  sundayNightOfResetWeek.setHours(23, 59, 59, 999);
+  
+  // The week ends if the current time is past the Sunday night of the reset week
+  const weekEnded = now > sundayNightOfResetWeek;
+  
+  if (!weekEnded && !force) {
+    return; // Not yet Sunday night
   }
 
   // Update leaderboard one last time to sync user XP
