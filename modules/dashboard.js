@@ -1,12 +1,14 @@
 // Modules/dashboard.js
 import { getDay, saveDay, getProfile, saveProfile, getCustomReasons, getAllDays } from './storage.js';
 import { playSuccessSound, playPivotSound, playUnlockSound } from './notifications.js';
+import { checkAndUnlockBadges } from './gamification.js';
 
 function getTodayDateStr() {
   return new Date().toISOString().split('T')[0];
 }
 
 export function renderDashboard(container) {
+  checkAndUnlockBadges();
   const todayStr = getTodayDateStr();
   const dayLog = getDay(todayStr);
   const profile = getProfile();
@@ -187,27 +189,44 @@ export function renderDashboard(container) {
             </div>
           </div>
 
-          <h3 style="font-family: var(--font-header); font-size: 16px; font-weight: 800; margin: 15px 0 10px;">🛡️ Unlockable Badges</h3>
+          <h3 style="font-family: var(--font-header); font-size: 16px; font-weight: 800; margin: 15px 0 10px;">🛡️ Profile Badges</h3>
+          <p class="hint" style="margin-bottom: 12px;">Badges are earned based on your habits and schedule. Once unlocked, you can equip them to your profile banner!</p>
           <div class="shop-badges-grid">
-            <div class="badge-item card-3d" data-badge="Deep Worker">
+            <div class="badge-item card-3d ${profile.unlockedBadges.includes("Deep Worker") ? '' : 'locked-badge'}" data-badge="Deep Worker">
               <span class="badge-icon">📖</span>
               <h5>Deep Worker</h5>
-              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Deep Worker" data-cost="10">10 💎</button>
+              <p class="badge-criteria" style="font-size: 10px; color: var(--text-hint); margin: 4px 0 8px;">Complete 5 Focus blocks</p>
+              ${profile.unlockedBadges.includes("Deep Worker") ? 
+                `<button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Deep Worker">Equip</button>` : 
+                `<button class="btn btn-secondary btn-3d btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">Locked 🔒</button>`
+              }
             </div>
-            <div class="badge-item card-3d" data-badge="Honest Scribe">
+            <div class="badge-item card-3d ${profile.unlockedBadges.includes("Honest Scribe") ? '' : 'locked-badge'}" data-badge="Honest Scribe">
               <span class="badge-icon">✍️</span>
               <h5>Honest Scribe</h5>
-              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Honest Scribe" data-cost="15">15 💎</button>
+              <p class="badge-criteria" style="font-size: 10px; color: var(--text-hint); margin: 4px 0 8px;">Review & lock 3 past days</p>
+              ${profile.unlockedBadges.includes("Honest Scribe") ? 
+                `<button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Honest Scribe">Equip</button>` : 
+                `<button class="btn btn-secondary btn-3d btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">Locked 🔒</button>`
+              }
             </div>
-            <div class="badge-item card-3d" data-badge="Early Riser">
+            <div class="badge-item card-3d ${profile.unlockedBadges.includes("Early Riser") ? '' : 'locked-badge'}" data-badge="Early Riser">
               <span class="badge-icon">🌅</span>
               <h5>Early Riser</h5>
-              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Early Riser" data-cost="10">10 💎</button>
+              <p class="badge-criteria" style="font-size: 10px; color: var(--text-hint); margin: 4px 0 8px;">Complete an early morning slot</p>
+              ${profile.unlockedBadges.includes("Early Riser") ? 
+                `<button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Early Riser">Equip</button>` : 
+                `<button class="btn btn-secondary btn-3d btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">Locked 🔒</button>`
+              }
             </div>
-            <div class="badge-item card-3d" data-badge="Integrity Champion">
+            <div class="badge-item card-3d ${profile.unlockedBadges.includes("Integrity Champion") ? '' : 'locked-badge'}" data-badge="Integrity Champion">
               <span class="badge-icon">👑</span>
               <h5>Integrity Champion</h5>
-              <button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Integrity Champion" data-cost="25">25 💎</button>
+              <p class="badge-criteria" style="font-size: 10px; color: var(--text-hint); margin: 4px 0 8px;">90%+ compliance & 3 logged days</p>
+              ${profile.unlockedBadges.includes("Integrity Champion") ? 
+                `<button class="btn btn-secondary btn-3d btn-sm buy-badge-btn" data-badge="Integrity Champion">Equip</button>` : 
+                `<button class="btn btn-secondary btn-3d btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">Locked 🔒</button>`
+              }
             </div>
           </div>
         </div>
@@ -539,12 +558,11 @@ export function renderDashboard(container) {
     });
   });
 
-  // Buy Badges
+  // Equip Badges
   container.querySelectorAll('.buy-badge-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const p = getProfile();
       const badge = btn.getAttribute('data-badge');
-      const cost = parseInt(btn.getAttribute('data-cost'));
 
       if (p.unlockedBadges.includes(badge)) {
         // Equip/Unequip
@@ -557,25 +575,11 @@ export function renderDashboard(container) {
         }
         saveProfile(p);
         closeShop();
-        return;
       }
-
-      if (p.diamonds < cost) {
-        alert("❌ Insufficient diamonds for this badge.");
-        return;
-      }
-
-      p.diamonds -= cost;
-      p.unlockedBadges.push(badge);
-      p.equippedBadge = badge;
-      saveProfile(p);
-      playUnlockSound();
-      alert(`🛡️ Purchased and equipped badge: "${badge}"!`);
-      closeShop();
     });
   });
 
-  // Highlight owned badges in shop
+  // Highlight equipped badges in shop
   const p = getProfile();
   container.querySelectorAll('.buy-badge-btn').forEach(btn => {
     const badge = btn.getAttribute('data-badge');

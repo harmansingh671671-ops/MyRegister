@@ -1065,6 +1065,11 @@ body {
   gap: 6px;
 }
 
+.badge-item.locked-badge {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
 .badge-icon {
   font-size: 24px;
 }

@@ -298,3 +298,89 @@ export function triggerEODRecap(dateStr, closeParentModalFn) {
     });
   };
 }
+
+export function checkAndUnlockBadges() {
+  const profile = getProfile();
+  const history = getAllDays();
+  let updated = false;
+
+  const unlocked = new Set(profile.unlockedBadges || []);
+
+  // 1. Deep Worker: Completed at least 5 scheduled tasks (slots) in history
+  if (!unlocked.has("Deep Worker")) {
+    let completedCount = 0;
+    for (const date in history) {
+      const dayLog = history[date];
+      if (dayLog && Array.isArray(dayLog.slots)) {
+        completedCount += dayLog.slots.slice(1).filter(s => s && s.status === 'completed' && s.text && s.text.trim() !== "").length;
+      }
+    }
+    if (completedCount >= 5) {
+      unlocked.add("Deep Worker");
+      updated = true;
+      showToast("🛡️ Unlocked Badge: Deep Worker! 📖", "success");
+      playUnlockSound();
+    }
+  }
+
+  // 2. Honest Scribe: Reviewed/locked at least 3 past days in history
+  if (!unlocked.has("Honest Scribe")) {
+    let reviewedCount = 0;
+    for (const date in history) {
+      if (history[date] && history[date].isReviewed) {
+        reviewedCount++;
+      }
+    }
+    if (reviewedCount >= 3) {
+      unlocked.add("Honest Scribe");
+      updated = true;
+      showToast("🛡️ Unlocked Badge: Honest Scribe! ✍️", "success");
+      playUnlockSound();
+    }
+  }
+
+  // 3. Early Riser: Completed at least 1 early morning slot (starting between 05:00 and 09:00)
+  if (!unlocked.has("Early Riser")) {
+    let earlyCompleted = false;
+    for (const date in history) {
+      const dayLog = history[date];
+      if (dayLog && Array.isArray(dayLog.slots)) {
+        const slots = dayLog.slots.slice(1);
+        const hasEarly = slots.some(s => {
+          if (s && s.status === 'completed' && s.text && s.text.trim() !== "") {
+            const time = s.time || "";
+            return time.startsWith("05") || time.startsWith("06") || time.startsWith("07") || time.startsWith("08");
+          }
+          return false;
+        });
+        if (hasEarly) {
+          earlyCompleted = true;
+          break;
+        }
+      }
+    }
+    if (earlyCompleted) {
+      unlocked.add("Early Riser");
+      updated = true;
+      showToast("🛡️ Unlocked Badge: Early Riser! 🌅", "success");
+      playUnlockSound();
+    }
+  }
+
+  // 4. Integrity Champion: Integrity score is >= 90% and has at least 3 days logged in history
+  if (!unlocked.has("Integrity Champion")) {
+    const totalDays = Object.keys(history).length;
+    if (profile.integrityScore >= 90 && totalDays >= 3) {
+      unlocked.add("Integrity Champion");
+      updated = true;
+      showToast("🛡️ Unlocked Badge: Integrity Champion! 👑", "success");
+      playUnlockSound();
+    }
+  }
+
+  if (updated) {
+    profile.unlockedBadges = Array.from(unlocked);
+    saveProfile(profile);
+  }
+}
+
