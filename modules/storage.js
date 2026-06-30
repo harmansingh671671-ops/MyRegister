@@ -49,7 +49,8 @@ const DEFAULT_PROFILE = {
   lastLeagueReset: '',
   violationLog: [],
   militaryRank: 'Civilian',
-  lastHonestyReminderDate: ''
+  lastHonestyReminderDate: '',
+  username: ''
 };
 
 // Validate and sanitize data before storage
@@ -76,6 +77,7 @@ function validateProfile(profile) {
   validated.highestStreak = Math.max(0, Math.floor(profile.highestStreak || 0));
   validated.hasCompletedOnboarding = Boolean(profile.hasCompletedOnboarding);
   validated.streakFreezeActive = Boolean(profile.streakFreezeActive);
+  validated.username = sanitizeString(profile.username || '');
   
   // Validate arrays and objects
   validated.milestonesClaimed = Array.isArray(profile.milestonesClaimed) ? profile.milestonesClaimed : [];
@@ -160,11 +162,39 @@ export function getProfile() {
   }
 }
 
+async function syncProfileToSupabase(profile) {
+  try {
+    const { supabase } = await import('./supabase.js');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session && session.user) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          display_name: profile.name || 'New Player',
+          avatar_mascot: profile.equippedMascot || 'owl',
+          equipped_badge: profile.equippedBadge || null,
+          streak: profile.streak || 0,
+          highest_streak: profile.highestStreak || 0,
+          integrity_score: profile.integrityScore || 100,
+          xp: profile.xp || 0,
+          military_rank: profile.militaryRank || 'Civilian'
+        })
+        .eq('id', session.user.id);
+      if (error) {
+        console.error('[Storage] Supabase sync error:', error);
+      }
+    }
+  } catch (err) {
+    console.error('[Storage] Error during Supabase profile sync:', err);
+  }
+}
+
 export function saveProfile(profile) {
   try {
     const validated = validateProfile(profile);
     localStorage.setItem(PROFILE_KEY, JSON.stringify(validated));
     window.dispatchEvent(new CustomEvent('tempo_profile_changed', { detail: validated }));
+    syncProfileToSupabase(validated);
   } catch (e) {
     console.error('Error saving profile:', e);
   }

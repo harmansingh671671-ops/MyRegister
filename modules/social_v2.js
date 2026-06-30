@@ -1,929 +1,1178 @@
-// modules/social.js
-// Inder's Feature: Twitter-Style Social Tab (v2)
-// Feed tabs, notification bell, profile cards, leaderboard, replies, repost
-// All data stored via getProfile/saveProfile or dedicated localStorage key
-// No direct localStorage outside of getSocialData/saveSocialData helpers
-// All functions wrapped in try-catch
+// modules/social_v2.js
+// Supabase-powered Instagram/Strava Hybrid Social Network
+// Real-time connections, posts, likes, comments, and profile sheets
 
+import { supabase } from './supabase.js';
 import { getProfile, saveProfile } from './storage.js';
-import { getMascotReaction } from './mascot.js';
+import { showToast, playUnlockSound, playSuccessSound } from './notifications.js';
 
-// ─── DEMO DATA ────────────────────────────────────────────────────────────────
-
-const DEMO_FRIENDS = [
-  { id: 'demo_maya',  name: 'Maya',  mascot: '🐻', streak: 14, level: 5,  outfit: '🧑‍🚀', rank: 'Sergeant',  bio: 'Morning person. Deep work addict. 🎯' },
-  { id: 'demo_arjun', name: 'Arjun', mascot: '🐱', streak: 7,  level: 3,  outfit: '👔',    rank: 'Corporal',  bio: 'Gym + Code every day. No excuses 💪' },
-  { id: 'demo_priya', name: 'Priya', mascot: '🦉', streak: 21, level: 8,  outfit: '🥷',   rank: 'Lieutenant', bio: '21-day streak queen. Sleep 8hrs minimum 🌙' }
-];
-
-const DEMO_POSTS = [
-  {
-    id: 'post_d1', authorId: 'demo_maya', authorName: 'Maya', authorMascot: '🐻', authorOutfit: '🧑‍🚀',
-    text: 'Crushed my morning study block! 3 hours of deep focus 🎯', mood: '🔥',
-    timestamp: Date.now() - 1000 * 60 * 47,
-    reactions: { '🔥': 3, '💪': 1 }, replies: [
-      { authorName: 'Priya', authorMascot: '🦉', text: 'Absolutely 🔥 Keep going!', timestamp: Date.now() - 1000 * 60 * 30 }
-    ]
-  },
-  {
-    id: 'post_d2', authorId: 'demo_priya', authorName: 'Priya', authorMascot: '🦉', authorOutfit: '🥷',
-    text: '21-day streak hit! Nothing can stop me now 🌟', mood: '🌟',
-    timestamp: Date.now() - 1000 * 60 * 60 * 2,
-    reactions: { '❤️': 5, '🔥': 4, '🎉': 2 }, replies: []
-  },
-  {
-    id: 'post_d3', authorId: 'demo_arjun', authorName: 'Arjun', authorMascot: '🐱', authorOutfit: '👔',
-    text: 'Took a rest day today. Sometimes recovery is the plan 😌', mood: '😌',
-    timestamp: Date.now() - 1000 * 60 * 60 * 5,
-    reactions: { '❤️': 2, '💙': 1 }, replies: []
-  }
-];
-
-const DEMO_NOTIFICATIONS = [
-  { id: 'n1', icon: '🔥', text: 'Maya reacted 🔥 to your check-in', time: Date.now() - 1000 * 60 * 20, read: false },
-  { id: 'n2', icon: '🎉', text: 'Priya hit a 21-day streak! Congratulate her 🏆', time: Date.now() - 1000 * 60 * 60, read: false },
-  { id: 'n3', icon: '👥', text: 'Arjun just posted a check-in', time: Date.now() - 1000 * 60 * 60 * 3, read: true },
-  { id: 'n4', icon: '🔔', text: 'You\'re on a 3-day streak! Keep it up 🔥', time: Date.now() - 1000 * 60 * 60 * 5, read: true }
-];
-
-const MOOD_OPTIONS     = ['🔥', '😴', '🎯', '💪', '😤', '🌟', '😌', '🎉'];
-const REACTION_OPTIONS = ['🔥', '❤️', '💪', '🎉', '💙', '😲', '🤝'];
-
-// ─── STORAGE HELPERS ──────────────────────────────────────────────────────────
-
-function getSocialData() {
+// --- TIME FORMATTING ---
+function formatTimeAgo(dateStr) {
   try {
-    const raw = localStorage.getItem('tempo_social_feed');
-    if (!raw) return { friends: [], posts: [], notifications: [] };
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error('[Social] Error reading social data:', e);
-    return { friends: [], posts: [], notifications: [] };
-  }
-}
-
-function saveSocialData(data) {
-  try {
-    localStorage.setItem('tempo_social_feed', JSON.stringify(data));
-  } catch (e) {
-    console.error('[Social] Error saving social data:', e);
-  }
-}
-
-function seedDemoData() {
-  try {
-    const data = getSocialData();
-    if (data.friends.length === 0) data.friends = [...DEMO_FRIENDS];
-    if (data.posts.length === 0)   data.posts   = [...DEMO_POSTS];
-    if (!data.notifications || data.notifications.length === 0) data.notifications = [...DEMO_NOTIFICATIONS];
-    saveSocialData(data);
-  } catch (e) { console.error('[Social] Seed error:', e); }
-}
-
-// ─── UTILITIES ────────────────────────────────────────────────────────────────
-
-function formatTimeAgo(ts) {
-  try {
-    const diff = Date.now() - ts;
+    const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1)  return 'just now';
+    if (mins < 1) return 'just now';
     if (mins < 60) return `${mins}m ago`;
     const hrs = Math.floor(mins / 60);
-    if (hrs < 24)  return `${hrs}h ago`;
+    if (hrs < 24) return `${hrs}h ago`;
     return `${Math.floor(hrs / 24)}d ago`;
-  } catch (e) { return ''; }
+  } catch (e) {
+    return '';
+  }
 }
 
-function generateId() {
-  return 'post_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
-}
-
-function unreadCount(notifications) {
-  return (notifications || []).filter(n => !n.read).length;
-}
-
-// ─── TRENDING ─────────────────────────────────────────────────────────────────
-
-function getTrendingTopics(posts) {
-  try {
-    const counts = {};
-    const keywords = ['study', 'gym', 'workout', 'sleep', 'read', 'code', 'work', 'run', 'meditat', 'focus', 'morning'];
-    posts.forEach(p => {
-      const lower = p.text.toLowerCase();
-      keywords.forEach(kw => {
-        if (lower.includes(kw)) counts[kw] = (counts[kw] || 0) + 1;
-      });
-      if (p.mood) counts[p.mood] = (counts[p.mood] || 0) + 1;
-    });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  } catch (e) { return []; }
-}
-
-// ─── ACTIONS ──────────────────────────────────────────────────────────────────
-
-function postCheckIn(text, mood) {
-  try {
-    const profile = getProfile();
-    const data = getSocialData();
-    const mascotEmojis = { owl: '🦉', bear: '🐻', cat: '🐱' };
-    const outfitEmojis = { none: '', suit: '👔', astronaut: '🧑‍🚀', visor: '🕶️', ninja: '🥷', cowboy: '🤠', wizard: '🧙' };
-    const newPost = {
-      id: generateId(),
-      authorId: 'me',
-      authorName: profile.name || 'You',
-      authorMascot: mascotEmojis[profile.equippedMascot] || '🦉',
-      authorOutfit: outfitEmojis[profile.equippedOutfit] || '',
-      text: text.trim().substring(0, 200),
-      mood: mood || '🎯',
-      timestamp: Date.now(),
-      reactions: {},
-      replies: []
-    };
-    data.posts.unshift(newPost);
-    if (data.posts.length > 50) data.posts = data.posts.slice(0, 50);
-    // Add a notification when friends react (simulate)
-    data.notifications = data.notifications || [];
-    saveSocialData(data);
-    return newPost;
-  } catch (e) { console.error('[Social] Post error:', e); return null; }
-}
-
-function reactToPost(postId, emoji) {
-  try {
-    const data = getSocialData();
-    const post = data.posts.find(p => p.id === postId);
-    if (!post) return;
-    if (!post.reactions[emoji]) post.reactions[emoji] = 0;
-    post.reactions[emoji]++;
-    saveSocialData(data);
-  } catch (e) { console.error('[Social] React error:', e); }
-}
-
-function addReply(postId, replyText) {
-  try {
-    const profile = getProfile();
-    const data = getSocialData();
-    const post = data.posts.find(p => p.id === postId);
-    if (!post) return null;
-    const mascotEmojis = { owl: '🦉', bear: '🐻', cat: '🐱' };
-    const reply = {
-      id: 'reply_' + Date.now(),
-      authorName: profile.name || 'You',
-      authorMascot: mascotEmojis[profile.equippedMascot] || '🦉',
-      text: replyText.trim().substring(0, 140),
-      timestamp: Date.now()
-    };
-    if (!post.replies) post.replies = [];
-    post.replies.push(reply);
-    saveSocialData(data);
-    return reply;
-  } catch (e) { console.error('[Social] Reply error:', e); return null; }
-}
-
-function repostPost(post) {
-  try {
-    const profile = getProfile();
-    const data = getSocialData();
-    const mascotEmojis = { owl: '🦉', bear: '🐻', cat: '🐱' };
-    const outfitEmojis = { none: '', suit: '👔', astronaut: '🧑‍🚀', visor: '🕶️', ninja: '🥷', cowboy: '🤠', wizard: '🧙' };
-    const repost = {
-      id: generateId(),
-      authorId: 'me',
-      authorName: profile.name || 'You',
-      authorMascot: mascotEmojis[profile.equippedMascot] || '🦉',
-      authorOutfit: outfitEmojis[profile.equippedOutfit] || '',
-      text: post.text,
-      mood: post.mood,
-      timestamp: Date.now(),
-      reactions: {},
-      replies: [],
-      repostOf: post.authorName
-    };
-    data.posts.unshift(repost);
-    saveSocialData(data);
-    return repost;
-  } catch (e) { console.error('[Social] Repost error:', e); return null; }
-}
-
-function markAllNotificationsRead() {
-  try {
-    const data = getSocialData();
-    (data.notifications || []).forEach(n => n.read = true);
-    saveSocialData(data);
-  } catch (e) { console.error('[Social] Mark read error:', e); }
-}
-
-// ─── LIKE HELPER ─────────────────────────────────────────────────────────────
-
-function likePost(postId) {
-  try {
-    const data = getSocialData();
-    const post = data.posts.find(p => p.id === postId);
-    if (!post) return 0;
-    if (!post.likes) post.likes = 0;
-    post.likes++;
-    saveSocialData(data);
-    return post.likes;
-  } catch (e) { console.error('[Social] Like error:', e); return 0; }
-}
-
-function replyCount(post) {
-  return (post.replies || []).length;
-}
-
-function likeCount(post) {
-  return post.likes || 0;
-}
-
-function repostCount(post) {
-  return post.reposts || 0;
-}
-
-// ─── TWITTER-STYLE RENDER HELPERS ────────────────────────────────────────────
-
-function renderReplies(post) {
-  const replies = post.replies || [];
-  if (replies.length === 0) return '';
-  return replies.slice(0, 3).map(r => `
-    <div class="tw-reply-row">
-      <div class="tw-reply-avatar-col">
-        <div class="tw-reply-avatar">${r.authorMascot}</div>
-      </div>
-      <div class="tw-reply-body">
-        <div class="tw-reply-header">
-          <span class="tw-reply-name">${r.authorName}</span>
-          <span class="tw-reply-time">${formatTimeAgo(r.timestamp)}</span>
-        </div>
-        <p class="tw-reply-text">${r.text}</p>
+// --- CORE SOCIAL RENDERER ---
+export function renderSocial(container) {
+  container.innerHTML = `
+    <div class="social-view">
+      <div class="social-loading-screen" style="text-align: center; padding: 50px;">
+        <span class="spinner" style="font-size: 32px; display: block; margin-bottom: 12px; animation: spin 1s linear infinite;">🔄</span>
+        <p>Connecting to Odyssey Network...</p>
       </div>
     </div>
-  `).join('') + (replies.length > 3 ? `
-    <p class="tw-show-more-replies">Show ${replies.length - 3} more replies</p>
-  ` : '');
+  `;
+
+  checkUserSession(container);
 }
 
-function renderPostCard(post, isOwn = false) {
-  const likes    = likeCount(post);
-  const reposts  = repostCount(post);
-  const replies  = replyCount(post);
-  const safeName = post.authorName || 'User';
-  const handle   = '@' + safeName.toLowerCase().replace(/\s+/g, '');
+// --- AUTHENTICATION CHECK ---
+async function checkUserSession(container) {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      renderAuthScreen(container);
+    } else {
+      // Check if user has completed profile setup and has a username
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .maybeSingle();
 
-  return `
-    <div class="tw-post" data-post-id="${post.id}">
+      if (error) throw error;
 
-      ${post.repostOf ? `
-        <div class="tw-repost-label">🔁 <span>${isOwn ? 'You' : post.authorName} reposted</span></div>
-      ` : ''}
+      if (!profile || !profile.username || profile.username.startsWith('user_')) {
+        renderUsernameSetup(container, session.user);
+      } else {
+        // Sync local profile username
+        const localProf = getProfile();
+        localProf.username = profile.username;
+        localProf.name = profile.display_name || localProf.name;
+        saveProfile(localProf);
 
-      <div class="tw-post-inner">
+        renderMainSocialFeed(container, profile);
+      }
+    }
+  } catch (err) {
+    console.error('[Social] Session check failed:', err);
+    container.innerHTML = `
+      <div class="card card-3d" style="text-align: center; padding: 25px; border-color: var(--duo-red);">
+        <h3>⚠️ Connection Failed</h3>
+        <p>Failed to connect to the server. Please check your internet connection.</p>
+        <button class="btn btn-primary btn-3d btn-sm" id="retry-session-btn" style="margin-top: 15px;">Retry Connection</button>
+      </div>
+    `;
+    container.querySelector('#retry-session-btn').onclick = () => renderSocial(container);
+  }
+}
 
-        <!-- Left: Avatar column -->
-        <div class="tw-avatar-col">
-          <div class="tw-avatar social-avatar--clickable"
-               data-friend-id="${post.authorId}"
-               data-friend-name="${post.authorName}">
-            <span class="tw-avatar-mascot">${post.authorMascot}</span>
-            ${post.authorOutfit ? `<span class="tw-avatar-outfit">${post.authorOutfit}</span>` : ''}
+// --- AUTHENTICATION SCREEN ---
+function renderAuthScreen(container) {
+  container.innerHTML = `
+    <div class="social-auth-card card-3d animate-pop" style="max-width: 380px; margin: 20px auto; padding: 25px;">
+      <h2 style="font-family: var(--font-header); text-align: center; margin-bottom: 6px;">👥 Odyssey Squad</h2>
+      <p class="hint" style="text-align: center; margin-bottom: 20px;">Connect with friends, track streaks, and build habits together.</p>
+      
+      <div class="auth-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px;">
+        <button class="auth-tab-btn active" id="tab-login" style="flex: 1; padding: 10px; background: none; border: none; font-weight: 700; color: var(--text-color); cursor: pointer;">Log In</button>
+        <button class="auth-tab-btn" id="tab-signup" style="flex: 1; padding: 10px; background: none; border: none; font-weight: 700; color: var(--text-hint); cursor: pointer;">Sign Up</button>
+      </div>
+
+      <form id="auth-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <div id="signup-fields" class="hidden" style="display: flex; flex-direction: column; gap: 12px;">
+          <input type="text" id="auth-name" class="social-modal-input" placeholder="Your Display Name" style="width: 100%;" />
+          <div style="position: relative; display: flex; align-items: center;">
+            <span style="position: absolute; left: 12px; font-weight: 700; color: var(--text-hint);">@</span>
+            <input type="text" id="auth-username" class="social-modal-input" placeholder="unique_username" style="width: 100%; padding-left: 28px;" />
           </div>
-          ${replies > 0 ? '<div class="tw-thread-line"></div>' : ''}
         </div>
+        <input type="email" id="auth-email" class="social-modal-input" placeholder="Email Address" required style="width: 100%;" />
+        <input type="password" id="auth-password" class="social-modal-input" placeholder="Password (min 6 characters)" required style="width: 100%;" />
+        
+        <button type="submit" class="btn btn-primary btn-3d btn-full" id="auth-submit-btn" style="margin-top: 10px;">Log In 🚀</button>
+      </form>
 
-        <!-- Right: Content column -->
-        <div class="tw-content-col">
+      <div style="text-align: center; margin: 15px 0; color: var(--text-hint); font-size: 12px;">— OR —</div>
+      <button class="btn btn-secondary btn-3d btn-full" id="auth-anonymous-btn">⚡ Instant Guest Access</button>
+    </div>
+  `;
 
-          <!-- Header -->
-          <div class="tw-post-header">
-            <span class="tw-post-name">${safeName}</span>
-            <span class="tw-post-handle">${handle}</span>
-            <span class="tw-post-dot">·</span>
-            <span class="tw-post-time">${formatTimeAgo(post.timestamp)}</span>
-            <span class="tw-post-mood">${post.mood}</span>
-            ${isOwn ? '<span class="tw-you-badge">You</span>' : ''}
+  const tabLogin = container.querySelector('#tab-login');
+  const tabSignup = container.querySelector('#tab-signup');
+  const signupFields = container.querySelector('#signup-fields');
+  const authSubmitBtn = container.querySelector('#auth-submit-btn');
+  const authForm = container.querySelector('#auth-form');
+  const usernameInput = container.querySelector('#auth-username');
+  let isSignUp = false;
+
+  usernameInput.oninput = () => {
+    usernameInput.value = usernameInput.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  };
+
+  tabLogin.onclick = () => {
+    isSignUp = false;
+    tabLogin.classList.add('active');
+    tabLogin.style.color = 'var(--text-color)';
+    tabSignup.classList.remove('active');
+    tabSignup.style.color = 'var(--text-hint)';
+    signupFields.classList.add('hidden');
+    authSubmitBtn.textContent = 'Log In 🚀';
+    usernameInput.required = false;
+  };
+
+  tabSignup.onclick = () => {
+    isSignUp = true;
+    tabSignup.classList.add('active');
+    tabSignup.style.color = 'var(--text-color)';
+    tabLogin.classList.remove('active');
+    tabLogin.style.color = 'var(--text-hint)';
+    signupFields.classList.remove('hidden');
+    authSubmitBtn.textContent = 'Sign Up 🎉';
+    usernameInput.required = true;
+  };
+
+  authForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const email = container.querySelector('#auth-email').value.trim();
+    const password = container.querySelector('#auth-password').value;
+    const name = container.querySelector('#auth-name').value.trim();
+    const username = usernameInput.value.trim();
+
+    authSubmitBtn.disabled = true;
+    authSubmitBtn.textContent = 'Processing...';
+
+    try {
+      if (isSignUp) {
+        if (username.length < 3) {
+          throw new Error("Username must be at least 3 characters.");
+        }
+
+        // Check availability
+        const { data: taken, error: checkError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('username', username)
+          .maybeSingle();
+
+        if (checkError) throw checkError;
+        if (taken) {
+          throw new Error("Username already taken! ❌");
+        }
+
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { name: name || 'New Player', username } }
+        });
+        if (error) throw error;
+        
+        // Sync profile table immediately (if automatically signed in)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session && session.user) {
+          await supabase
+            .from('profiles')
+            .update({ username, display_name: name || 'New Player' })
+            .eq('id', session.user.id);
+        }
+
+        showToast("Registration successful! 🎉", "success");
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        showToast("Welcome back!", "success");
+      }
+      checkUserSession(container);
+    } catch (err) {
+      showToast(err.message, "error");
+      authSubmitBtn.disabled = false;
+      authSubmitBtn.textContent = isSignUp ? 'Sign Up 🎉' : 'Log In 🚀';
+    }
+  };
+
+  container.querySelector('#auth-anonymous-btn').onclick = async () => {
+    const btn = container.querySelector('#auth-anonymous-btn');
+    btn.disabled = true;
+    btn.textContent = 'Connecting...';
+    try {
+      const { error } = await supabase.auth.signInAnonymously();
+      if (error) throw error;
+      showToast("Signed in as Guest!", "success");
+      checkUserSession(container);
+    } catch (err) {
+      showToast(err.message, "error");
+      btn.disabled = false;
+      btn.textContent = '⚡ Instant Guest Access';
+    }
+  };
+}
+
+// --- USERNAME SETUP ---
+function renderUsernameSetup(container, user) {
+  container.innerHTML = `
+    <div class="social-auth-card card-3d animate-pop" style="max-width: 380px; margin: 20px auto; padding: 25px;">
+      <h3 style="font-family: var(--font-header); text-align: center; margin-bottom: 6px;">🏷️ Choose Username</h3>
+      <p class="hint" style="text-align: center; margin-bottom: 20px;">Every Odyssey user needs a unique username to send and receive requests.</p>
+      
+      <form id="username-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="position: relative; display: flex; align-items: center;">
+          <span style="position: absolute; left: 12px; font-weight: 700; color: var(--text-hint);">@</span>
+          <input type="text" id="username-input" class="social-modal-input" placeholder="username" required maxlength="15" style="width: 100%; padding-left: 28px;" />
+        </div>
+        <button type="submit" class="btn btn-primary btn-3d btn-full" id="username-submit-btn">Set Username & Begin 🚀</button>
+      </form>
+    </div>
+  `;
+
+  const usernameForm = container.querySelector('#username-form');
+  const input = container.querySelector('#username-input');
+  const submitBtn = container.querySelector('#username-submit-btn');
+
+  // Prevent invalid characters
+  input.oninput = () => {
+    input.value = input.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+  };
+
+  usernameForm.onsubmit = async (e) => {
+    e.preventDefault();
+    const username = input.value.trim();
+    if (username.length < 3) {
+      showToast("Username must be at least 3 characters.", "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Checking availability...';
+
+    try {
+      // Check if username is already taken
+      const { data: taken, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (taken) {
+        showToast("Username already taken! ❌", "error");
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Set Username & Begin 🚀';
+        return;
+      }
+
+      // Claim username
+      const localProf = getProfile();
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ 
+          username,
+          display_name: localProf.name || 'Player'
+        })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      // Update local storage profile
+      localProf.username = username;
+      saveProfile(localProf);
+      
+      showToast("Username registered! Welcome to Odyssey.", "success");
+      playSuccessSound();
+
+      checkUserSession(container);
+    } catch (err) {
+      showToast(err.message, "error");
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Set Username & Begin 🚀';
+    }
+  };
+}
+
+// --- MAIN SOCIAL VIEW ---
+async function renderMainSocialFeed(container, userProfile) {
+  let activeTab = 'feed'; // 'feed', 'squad', 'pending'
+  
+  // Clean outer container and prepare layouts
+  container.innerHTML = `
+    <div class="social-view">
+      <!-- Header -->
+      <div class="social-header" style="display:flex; justify-content:space-between; align-items:center; padding-bottom: 12px; border-bottom: 2px solid var(--border-color);">
+        <div>
+          <h2 class="social-title" style="margin:0;">👥 Squad Feed</h2>
+          <span style="font-size:12px; color:var(--text-hint);">@${userProfile.username}</span>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center;">
+          <button class="social-bell-btn" id="logout-btn" title="Log Out" style="background:none; border:none; font-size: 18px; cursor:pointer;">🚪</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="social-feed-tabs" style="display:flex; gap: 8px; margin: 15px 0;">
+        <button class="social-tab-btn active" data-tab="feed" style="flex:1;">Feed</button>
+        <button class="social-tab-btn" data-tab="squad">Squad</button>
+        <button class="social-tab-btn" data-tab="pending" id="pending-tab-btn">Requests</button>
+      </div>
+
+      <!-- Core Display Window -->
+      <div id="social-viewport"></div>
+    </div>
+
+    <!-- Bottom Sheet Modal (Instagram/Strava profile) -->
+    <div class="profile-sheet-overlay hidden" id="profile-sheet-overlay">
+      <div class="profile-sheet-backdrop" id="profile-sheet-backdrop"></div>
+      <div class="profile-sheet card-3d">
+        <div class="profile-sheet-handle"></div>
+        <div id="profile-sheet-content"></div>
+      </div>
+    </div>
+  `;
+
+  const viewport = container.querySelector('#social-viewport');
+  const tabs = container.querySelectorAll('.social-tab-btn');
+
+  // Bind tab switching
+  tabs.forEach(btn => {
+    btn.onclick = () => {
+      tabs.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeTab = btn.getAttribute('data-tab');
+      renderTabContent(viewport, activeTab, userProfile, container);
+    };
+  });
+
+  // Bind Log Out
+  container.querySelector('#logout-btn').onclick = async () => {
+    if (confirm("Are you sure you want to log out? Your local scores will remain intact, but you won't sync to the cloud.")) {
+      await supabase.auth.signOut();
+      showToast("Logged out successfully.", "info");
+      renderSocial(container);
+    }
+  };
+
+  // Initial tab render
+  renderTabContent(viewport, 'feed', userProfile, container);
+  updateRequestsBadgeCount(userProfile);
+}
+
+// --- UPDATE BADGE COUNT ---
+async function updateRequestsBadgeCount(userProfile) {
+  try {
+    const { count, error } = await supabase
+      .from('friend_requests')
+      .select('*', { count: 'exact', head: true })
+      .eq('receiver_id', userProfile.id)
+      .eq('status', 'pending');
+
+    if (error) throw error;
+
+    const btn = document.querySelector('#pending-tab-btn');
+    if (btn) {
+      btn.innerHTML = count > 0 ? `Requests <span class="badge" style="background:var(--duo-blue); color:white; padding:2px 6px; border-radius:10px; font-size:10px; margin-left:4px;">${count}</span>` : 'Requests';
+    }
+  } catch (err) {
+    console.error('Error fetching request badge count:', err);
+  }
+}
+
+// --- RENDER TAB CONTENT ---
+function renderTabContent(viewport, tab, userProfile, container) {
+  viewport.innerHTML = `
+    <div style="text-align: center; padding: 30px;">
+      <span class="spinner" style="font-size: 24px; display: block; margin-bottom: 8px; animation: spin 1s linear infinite;">🔄</span>
+      <p>Loading...</p>
+    </div>
+  `;
+
+  if (tab === 'feed') {
+    renderFeedTab(viewport, userProfile, container);
+  } else if (tab === 'squad') {
+    renderSquadTab(viewport, userProfile, container);
+  } else if (tab === 'pending') {
+    renderRequestsTab(viewport, userProfile, container);
+  }
+}
+
+// --- TAB 1: FEED TAB ---
+async function renderFeedTab(viewport, userProfile, container) {
+  try {
+    // 1. Fetch friend IDs
+    const { data: f1 } = await supabase.from('friendships').select('user_id_2').eq('user_id_1', userProfile.id);
+    const { data: f2 } = await supabase.from('friendships').select('user_id_1').eq('user_id_2', userProfile.id);
+    
+    const friendIds = [
+      userProfile.id,
+      ...(f1 || []).map(r => r.user_id_2),
+      ...(f2 || []).map(r => r.user_id_1)
+    ];
+
+    // 2. Fetch posts from friends and self
+    const { data: posts, error } = await supabase
+      .from('posts')
+      .select(`
+        id,
+        text,
+        mood,
+        created_at,
+        user_id,
+        profiles!posts_user_id_fkey (
+          username,
+          display_name,
+          avatar_mascot,
+          equipped_badge
+        )
+      `)
+      .in('user_id', friendIds)
+      .order('created_at', { ascending: false })
+      .limit(30);
+
+    if (error) throw error;
+
+    viewport.innerHTML = `
+      <!-- Composer -->
+      <div class="social-composer card-3d" style="margin-bottom: 20px; padding: 15px;">
+        <div style="display:flex; gap:10px; margin-bottom:10px; align-items:center;">
+          <span style="font-size: 24px;">🎯</span>
+          <textarea id="composer-text" placeholder="Share your accomplishments with your squad... 🚀" maxlength="200" style="flex:1; background:var(--bg-dark); border:2px solid var(--border-color); color:var(--text-color); border-radius:8px; padding:8px; font-family:inherit; font-size:13px; resize:none;" rows="2"></textarea>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; gap:4px;">
+            ${['🔥', '🎯', '💪', '📚', '😌', '🌟'].map(m => `
+              <button class="mood-btn" data-mood="${m}" style="background:none; border:2px solid transparent; border-radius:6px; cursor:pointer; font-size:16px; padding:2px 6px;">${m}</button>
+            `).join('')}
           </div>
+          <button class="btn btn-primary btn-3d btn-sm" id="post-submit-btn">Post</button>
+        </div>
+      </div>
 
-          <!-- Post text -->
-          <p class="tw-post-text">${post.text}</p>
-
-          <!-- Replies thread -->
-          <div class="tw-replies-thread" id="tw-replies-${post.id}">
-            ${renderReplies(post)}
+      <!-- Feed List -->
+      <div class="feed-posts-list" style="display:flex; flex-direction:column; gap:12px;">
+        ${posts.length === 0 ? `
+          <div style="text-align:center; padding:30px; color:var(--text-hint);">
+            <p>Your squad feed is empty. Post a check-in or add friends to see updates!</p>
           </div>
+        ` : posts.map(p => {
+          const isOwn = p.user_id === userProfile.id;
+          const author = p.profiles;
+          return `
+            <div class="tw-post card-3d" data-post-id="${p.id}" style="padding:15px; display:flex; gap:12px;">
+              <div class="social-avatar--clickable" data-username="${author.username}" style="cursor:pointer; display:flex; flex-direction:column; align-items:center; justify-content:flex-start;">
+                <div style="font-size: 28px; background:var(--bg-dark); border:2px solid var(--border-color); border-radius:50%; width:44px; height:44px; display:flex; align-items:center; justify-content:center; position:relative;">
+                  <span>${author.avatar_mascot === 'bear' ? '🐻' : author.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
+                </div>
+                ${author.equipped_badge ? `<span style="font-size:11px; margin-top:4px;">${author.equipped_badge.substring(0,2)}</span>` : ''}
+              </div>
+              <div style="flex:1;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <div>
+                    <span style="font-weight:700; font-size:13px;">${author.display_name}</span>
+                    <span style="color:var(--text-hint); font-size:11px; margin-left:4px;">@${author.username}</span>
+                  </div>
+                  <span style="color:var(--text-hint); font-size:11px;">${formatTimeAgo(p.created_at)}</span>
+                </div>
+                <p style="font-size:13px; margin:0 0 8px 0; line-height:1.4;">${p.mood} ${p.text}</p>
+                <div style="display:flex; gap:15px; align-items:center; color:var(--text-hint);">
+                  <button class="post-like-btn" data-post-id="${p.id}" style="background:none; border:none; color:var(--text-hint); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    ❤️ React
+                  </button>
+                  <button class="post-comment-toggle" data-post-id="${p.id}" style="background:none; border:none; color:var(--text-hint); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                    💬 Comment
+                  </button>
+                </div>
+                
+                <!-- Comment Box -->
+                <div class="comment-section hidden" id="comments-${p.id}" style="margin-top:10px; border-top:1px solid var(--border-color); padding-top:8px;">
+                  <div class="replies-list" id="replies-list-${p.id}" style="display:flex; flex-direction:column; gap:6px; margin-bottom:8px;"></div>
+                  <div style="display:flex; gap:6px;">
+                    <input type="text" class="comment-input" placeholder="Write a reply..." style="flex:1; font-size:11px; background:var(--bg-dark); border:2px solid var(--border-color); border-radius:6px; padding:4px 8px; color:var(--text-color);" />
+                    <button class="btn btn-secondary btn-3d btn-sm submit-comment-btn" data-post-id="${p.id}" style="padding:4px 10px; font-size:11px;">Reply</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
 
-          <!-- Reply composer (hidden) -->
-          <div class="tw-reply-composer hidden" id="reply-composer-${post.id}">
-            <div class="tw-reply-compose-inner">
-              <div class="tw-reply-compose-avatar">${post.authorMascot}</div>
-              <input type="text" class="tw-reply-compose-input social-reply-input"
-                     data-post-id="${post.id}"
-                     placeholder="Post your reply…"
-                     maxlength="140" />
-              <button class="tw-reply-compose-btn social-reply-submit" data-post-id="${post.id}">Reply</button>
+    // Bind Mood Selector
+    let selectedMood = '🎯';
+    const moodBtns = viewport.querySelectorAll('.mood-btn');
+    moodBtns.forEach(btn => {
+      if (btn.dataset.mood === selectedMood) btn.style.borderColor = 'var(--duo-blue)';
+      btn.onclick = () => {
+        moodBtns.forEach(b => b.style.borderColor = 'transparent');
+        btn.style.borderColor = 'var(--duo-blue)';
+        selectedMood = btn.dataset.mood;
+      };
+    });
+
+    // Bind Post Submission
+    const submitBtn = viewport.querySelector('#post-submit-btn');
+    const textarea = viewport.querySelector('#composer-text');
+    submitBtn.onclick = async () => {
+      const text = textarea.value.trim();
+      if (!text) return;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Posting...';
+
+      try {
+        const { error } = await supabase.from('posts').insert({
+          user_id: userProfile.id,
+          text,
+          mood: selectedMood
+        });
+        if (error) throw error;
+        showToast("Check-in posted! 🚀", "success");
+        playSuccessSound();
+        renderTabContent(viewport, 'feed', userProfile, container);
+      } catch (err) {
+        showToast(err.message, "error");
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Post';
+      }
+    };
+
+    // Bind Likes & Comments
+    viewport.querySelectorAll('.post-like-btn').forEach(btn => {
+      btn.onclick = () => {
+        btn.textContent = '❤️ Liked!';
+        btn.disabled = true;
+        playSuccessSound();
+      };
+    });
+
+    viewport.querySelectorAll('.post-comment-toggle').forEach(btn => {
+      btn.onclick = async () => {
+        const postId = btn.dataset.postId;
+        const box = viewport.querySelector(`#comments-${postId}`);
+        box.classList.toggle('hidden');
+        if (!box.classList.contains('hidden')) {
+          loadComments(postId, viewport.querySelector(`#replies-list-${postId}`));
+        }
+      };
+    });
+
+    viewport.querySelectorAll('.submit-comment-btn').forEach(btn => {
+      btn.onclick = async () => {
+        const postId = btn.dataset.postId;
+        const input = btn.previousElementSibling;
+        const commentText = input.value.trim();
+        if (!commentText) return;
+
+        btn.disabled = true;
+        try {
+          const { error } = await supabase.from('post_replies').insert({
+            post_id: postId,
+            user_id: userProfile.id,
+            text: commentText
+          });
+          if (error) throw error;
+          input.value = '';
+          loadComments(postId, viewport.querySelector(`#replies-list-${postId}`));
+        } catch (err) {
+          showToast(err.message, "error");
+        } finally {
+          btn.disabled = false;
+        }
+      };
+    });
+
+    // Bind Profile opens
+    viewport.querySelectorAll('.social-avatar--clickable').forEach(av => {
+      av.onclick = () => openProfileSheet(av.dataset.username, userProfile, container);
+    });
+
+  } catch (err) {
+    showToast(err.message, "error");
+  }
+}
+
+// --- LOAD COMMENTS ---
+async function loadComments(postId, listContainer) {
+  try {
+    const { data: replies, error } = await supabase
+      .from('post_replies')
+      .select(`
+        text,
+        created_at,
+        profiles (
+          username,
+          display_name
+        )
+      `)
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (error) throw error;
+
+    listContainer.innerHTML = replies.map(r => `
+      <div style="font-size:11px; background:var(--bg-hover); padding:6px; border-radius:6px; line-height:1.3;">
+        <span style="font-weight:700;">${r.profiles.display_name}</span>
+        <span style="color:var(--text-hint); font-size:9px;"> @${r.profiles.username} · ${formatTimeAgo(r.created_at)}</span>
+        <p style="margin:2px 0 0 0;">${r.text}</p>
+      </div>
+    `).join('');
+  } catch (err) {
+    console.error('Error loading comments:', err);
+  }
+}
+
+// --- TAB 2: SQUAD TAB ---
+async function renderSquadTab(viewport, userProfile, container) {
+  viewport.innerHTML = `
+    <!-- Search Bar -->
+    <div class="card card-3d" style="padding:15px; margin-bottom:15px;">
+      <div style="display:flex; gap:8px;">
+        <input type="text" id="search-input" placeholder="Search users by @username..." class="social-modal-input" style="flex:1;" />
+        <button class="btn btn-primary btn-3d btn-sm" id="search-btn">Search</button>
+      </div>
+      <div id="search-results-box" style="margin-top:10px; display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+
+    <!-- Squad Friends List -->
+    <h3 style="font-family: var(--font-header); font-size: 15px; margin: 15px 0 10px;">🛡️ Your Active Squad</h3>
+    <div id="squad-friends-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+  `;
+
+  const searchInput = viewport.querySelector('#search-input');
+  const searchBtn = viewport.querySelector('#search-btn');
+  const resultsBox = viewport.querySelector('#search-results-box');
+  const friendsList = viewport.querySelector('#squad-friends-list');
+
+  // Load Squad friends
+  const loadSquadFriends = async () => {
+    try {
+      const { data: f1 } = await supabase.from('friendships').select('user_id_2').eq('user_id_1', userProfile.id);
+      const { data: f2 } = await supabase.from('friendships').select('user_id_1').eq('user_id_2', userProfile.id);
+      const friendIds = [
+        ...(f1 || []).map(r => r.user_id_2),
+        ...(f2 || []).map(r => r.user_id_1)
+      ];
+
+      if (friendIds.length === 0) {
+        friendsList.innerHTML = `<p style="text-align:center; color:var(--text-hint); font-size:12px; margin-top:20px;">No friends added yet. Use the search bar to find and add users!</p>`;
+        return;
+      }
+
+      const { data: friends, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .in('id', friendIds);
+
+      if (error) throw error;
+
+      friendsList.innerHTML = friends.map(f => `
+        <div class="squad-row card-3d social-avatar--clickable" data-username="${f.username}" style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px; cursor:pointer;">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <span style="font-size:24px;">${f.avatar_mascot === 'bear' ? '🐻' : f.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
+            <div>
+              <div style="font-weight:700; font-size:13px;">${f.display_name}</div>
+              <div style="font-size:11px; color:var(--text-hint);">@${f.username} · ${f.military_rank}</div>
             </div>
           </div>
-
-          <!-- Twitter-style action bar -->
-          <div class="tw-action-bar">
-
-            <!-- Reply -->
-            <button class="tw-action-btn social-reply-toggle-btn" data-post-id="${post.id}" title="Reply">
-              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
-              ${replies > 0 ? `<span class="tw-action-count">${replies}</span>` : ''}
-            </button>
-
-            <!-- Repost -->
-            <button class="tw-action-btn tw-repost-action social-repost-btn" data-post-id="${post.id}" title="Repost"
-                    ${isOwn ? 'disabled' : ''}>
-              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/>
-                <path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>
-              </svg>
-              ${reposts > 0 ? `<span class="tw-action-count">${reposts}</span>` : ''}
-            </button>
-
-            <!-- Like (heart) -->
-            <button class="tw-action-btn tw-like-btn" data-post-id="${post.id}" title="Like">
-              <svg class="tw-action-icon tw-heart-icon" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-              </svg>
-              <span class="tw-action-count tw-like-count" id="tw-like-count-${post.id}">${likes > 0 ? likes : ''}</span>
-            </button>
-
-            <!-- Share -->
-            <button class="tw-action-btn" title="Share">
-              <svg class="tw-action-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <polyline points="16 6 12 2 8 6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-            </button>
-
-          </div>
+          <span style="font-size:12px; font-weight:700; color:var(--duo-blue);">🔥 ${f.streak} days</span>
         </div>
-      </div>
-    </div>
-  `;
-}
+      `).join('');
 
-function renderFriendChip(friend) {
-  return `
-    <div class="social-friend-chip" data-friend-id="${friend.id}">
-      <div class="social-friend-avatar">
-        <span>${friend.mascot}</span>
-        ${friend.outfit ? `<span class="social-friend-outfit">${friend.outfit}</span>` : ''}
-        <span class="social-friend-online-dot"></span>
-      </div>
-      <span class="social-friend-name">${friend.name}</span>
-      <span class="social-friend-streak">🔥${friend.streak}</span>
-    </div>
-  `;
-}
+      viewport.querySelectorAll('.social-avatar--clickable').forEach(av => {
+        av.onclick = () => openProfileSheet(av.dataset.username, userProfile, container);
+      });
 
-// ─── NOTIFICATION PANEL ───────────────────────────────────────────────────────
+    } catch (err) {
+      showToast(err.message, "error");
+    }
+  };
 
-function renderNotificationPanel(notifications) {
-  return `
-    <div class="social-notif-panel" id="social-notif-panel">
-      <div class="social-notif-panel-header">
-        <h3 class="social-notif-title">🔔 Notifications</h3>
-        <button class="social-notif-mark-read" id="social-mark-read-btn">Mark all read</button>
-      </div>
-      <div class="social-notif-list">
-        ${(notifications || []).length === 0
-          ? `<p class="social-notif-empty">No notifications yet 👀</p>`
-          : (notifications || []).map(n => `
-            <div class="social-notif-item ${n.read ? '' : 'social-notif-item--unread'}">
-              <span class="social-notif-icon">${n.icon}</span>
-              <div class="social-notif-body">
-                <p class="social-notif-text">${n.text}</p>
-                <span class="social-notif-time">${formatTimeAgo(n.time)}</span>
+  loadSquadFriends();
+
+  // Handle Search
+  const triggerSearch = async () => {
+    const q = searchInput.value.trim().toLowerCase().replace('@', '');
+    if (!q) return;
+
+    searchBtn.disabled = true;
+    resultsBox.innerHTML = '<p style="font-size:11px; color:var(--text-hint);">Searching...</p>';
+
+    try {
+      const { data: matches, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .ilike('username', `%${q}%`)
+        .limit(5);
+
+      if (error) throw error;
+
+      if (matches.length === 0) {
+        resultsBox.innerHTML = '<p style="font-size:11px; color:var(--text-hint);">No users found. 🔍</p>';
+      } else {
+        resultsBox.innerHTML = matches.map(m => {
+          if (m.id === userProfile.id) return ''; // Skip self
+          return `
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--bg-hover); padding:8px 12px; border-radius:8px;">
+              <div class="social-avatar--clickable" data-username="${m.username}" style="display:flex; gap:8px; align-items:center; cursor:pointer;">
+                <span style="font-size:20px;">${m.avatar_mascot === 'bear' ? '🐻' : m.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
+                <div>
+                  <div style="font-size:12px; font-weight:700;">${m.display_name}</div>
+                  <div style="font-size:10px; color:var(--text-hint);">@${m.username}</div>
+                </div>
               </div>
-              ${!n.read ? `<span class="social-notif-dot"></span>` : ''}
+              <button class="btn btn-secondary btn-3d btn-sm request-btn" data-user-id="${m.id}" style="padding:4px 8px; font-size:11px;">Add Friend 🤝</button>
+            </div>
+          `;
+        }).join('');
+
+        resultsBox.querySelectorAll('.social-avatar--clickable').forEach(av => {
+          av.onclick = () => openProfileSheet(av.dataset.username, userProfile, container);
+        });
+
+        resultsBox.querySelectorAll('.request-btn').forEach(btn => {
+          btn.onclick = async () => {
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            try {
+              const { error: requestErr } = await supabase.from('friend_requests').insert({
+                sender_id: userProfile.id,
+                receiver_id: btn.dataset.userId,
+                status: 'pending'
+              });
+              if (requestErr) throw requestErr;
+              showToast("Friend request sent! ⏳", "success");
+              btn.textContent = 'Requested ⏳';
+            } catch (err) {
+              showToast(err.message, "error");
+              btn.disabled = false;
+              btn.textContent = 'Add Friend 🤝';
+            }
+          };
+        });
+      }
+    } catch (err) {
+      showToast(err.message, "error");
+    } finally {
+      searchBtn.disabled = false;
+    }
+  };
+
+  searchBtn.onclick = triggerSearch;
+}
+
+// --- TAB 3: REQUESTS TAB ---
+async function renderRequestsTab(viewport, userProfile, container) {
+  try {
+    // Fetch Incoming Requests
+    const { data: incoming, error: inErr } = await supabase
+      .from('friend_requests')
+      .select(`
+        id,
+        sender_id,
+        profiles!friend_requests_sender_id_fkey (
+          username,
+          display_name,
+          avatar_mascot
+        )
+      `)
+      .eq('receiver_id', userProfile.id)
+      .eq('status', 'pending');
+
+    if (inErr) throw inErr;
+
+    // Fetch Outgoing Requests
+    const { data: outgoing, error: outErr } = await supabase
+      .from('friend_requests')
+      .select(`
+        id,
+        profiles!friend_requests_receiver_id_fkey (
+          username,
+          display_name,
+          avatar_mascot
+        )
+      `)
+      .eq('sender_id', userProfile.id)
+      .eq('status', 'pending');
+
+    if (outErr) throw outErr;
+
+    viewport.innerHTML = `
+      <!-- Incoming Requests -->
+      <h3 style="font-family: var(--font-header); font-size: 15px; margin: 0 0 10px;">📥 Incoming Requests</h3>
+      <div id="incoming-box" style="display:flex; flex-direction:column; gap:10px; margin-bottom:20px;">
+        ${incoming.length === 0 
+          ? `<p style="color:var(--text-hint); font-size:12px; text-align:center; padding:10px 0;">No pending incoming requests.</p>` 
+          : incoming.map(req => `
+            <div class="card card-3d" style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px;">
+              <div class="social-avatar--clickable" data-username="${req.profiles.username}" style="display:flex; gap:10px; align-items:center; cursor:pointer;">
+                <span style="font-size:24px;">${req.profiles.avatar_mascot === 'bear' ? '🐻' : req.profiles.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
+                <div>
+                  <div style="font-weight:700; font-size:13px;">${req.profiles.display_name}</div>
+                  <div style="font-size:11px; color:var(--text-hint);">@${req.profiles.username}</div>
+                </div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-primary btn-3d btn-sm accept-btn" data-req-id="${req.id}" data-sender-id="${req.sender_id}" style="padding:4px 8px; font-size:11px;">Accept</button>
+                <button class="btn btn-secondary btn-3d btn-sm decline-btn" data-req-id="${req.id}" style="padding:4px 8px; font-size:11px;">Ignore</button>
+              </div>
             </div>
           `).join('')
         }
       </div>
-    </div>
-  `;
+
+      <!-- Outgoing Requests -->
+      <h3 style="font-family: var(--font-header); font-size: 15px; margin: 0 0 10px;">📤 Sent Requests</h3>
+      <div id="outgoing-box" style="display:flex; flex-direction:column; gap:10px;">
+        ${outgoing.length === 0 
+          ? `<p style="color:var(--text-hint); font-size:12px; text-align:center; padding:10px 0;">No sent requests pending.</p>` 
+          : outgoing.map(req => `
+            <div class="card card-3d" style="display:flex; justify-content:space-between; align-items:center; padding:10px 15px;">
+              <div class="social-avatar--clickable" data-username="${req.profiles.username}" style="display:flex; gap:10px; align-items:center; cursor:pointer;">
+                <span style="font-size:24px;">${req.profiles.avatar_mascot === 'bear' ? '🐻' : req.profiles.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
+                <div>
+                  <div style="font-weight:700; font-size:13px;">${req.profiles.display_name}</div>
+                  <div style="font-size:11px; color:var(--text-hint);">@${req.profiles.username}</div>
+                </div>
+              </div>
+              <button class="btn btn-secondary btn-3d btn-sm cancel-req-btn" data-req-id="${req.id}" style="padding:4px 8px; font-size:11px;">Cancel</button>
+            </div>
+          `).join('')
+        }
+      </div>
+    `;
+
+    // Bind profile click throughs
+    viewport.querySelectorAll('.social-avatar--clickable').forEach(av => {
+      av.onclick = () => openProfileSheet(av.dataset.username, userProfile, container);
+    });
+
+    // Bind Accept/Decline/Cancel actions
+    viewport.querySelectorAll('.accept-btn').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        const reqId = btn.dataset.reqId;
+        const senderId = btn.dataset.senderId;
+        try {
+          // 1. Accept request
+          const { error: accErr } = await supabase
+            .from('friend_requests')
+            .update({ status: 'accepted' })
+            .eq('id', reqId);
+
+          if (accErr) throw accErr;
+
+          // 2. Add Friendship record (alphabetical order)
+          const uid1 = senderId < userProfile.id ? senderId : userProfile.id;
+          const uid2 = senderId < userProfile.id ? userProfile.id : senderId;
+
+          const { error: friendErr } = await supabase
+            .from('friendships')
+            .insert({ user_id_1: uid1, user_id_2: uid2 });
+
+          if (friendErr) throw friendErr;
+
+          showToast("Squad request accepted! 🤝", "success");
+          playUnlockSound();
+
+          updateRequestsBadgeCount(userProfile);
+          renderRequestsTab(viewport, userProfile, container);
+        } catch (err) {
+          showToast(err.message, "error");
+          btn.disabled = false;
+        }
+      };
+    });
+
+    viewport.querySelectorAll('.decline-btn').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          const { error } = await supabase
+            .from('friend_requests')
+            .delete()
+            .eq('id', btn.dataset.reqId);
+
+          if (error) throw error;
+          showToast("Request ignored.", "info");
+          updateRequestsBadgeCount(userProfile);
+          renderRequestsTab(viewport, userProfile, container);
+        } catch (err) {
+          showToast(err.message, "error");
+          btn.disabled = false;
+        }
+      };
+    });
+
+    viewport.querySelectorAll('.cancel-req-btn').forEach(btn => {
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          const { error } = await supabase
+            .from('friend_requests')
+            .delete()
+            .eq('id', btn.dataset.reqId);
+
+          if (error) throw error;
+          showToast("Request cancelled.", "info");
+          renderRequestsTab(viewport, userProfile, container);
+        } catch (err) {
+          showToast(err.message, "error");
+          btn.disabled = false;
+        }
+      };
+    });
+
+  } catch (err) {
+    showToast(err.message, "error");
+  }
 }
 
-// ─── PROFILE CARD MODAL ───────────────────────────────────────────────────────
+// --- OPEN PROFILE SHEET (INSTAGRAM / STRAVA HYBRID STYLE) ---
+async function openProfileSheet(targetUsername, userProfile, container) {
+  const overlay = container.querySelector('#profile-sheet-overlay');
+  const content = container.querySelector('#profile-sheet-content');
+  const backdrop = container.querySelector('#profile-sheet-backdrop');
 
-function openProfileCard(friend, container) {
+  content.innerHTML = '<p style="text-align:center; padding:30px;">Loading Profile Sheet...</p>';
+  overlay.classList.remove('hidden');
+
+  backdrop.onclick = () => overlay.classList.add('hidden');
+
   try {
-    if (!friend) return;
-    const existing = container.querySelector('#social-profile-card-modal');
-    if (existing) existing.remove();
+    // 1. Fetch profile details
+    const { data: targetProfile, error: profErr } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('username', targetUsername)
+      .maybeSingle();
 
-    const data = getSocialData();
-    const friendPosts = data.posts.filter(p => p.authorId === friend.id).slice(0, 3);
+    if (profErr) throw profErr;
+    if (!targetProfile) throw new Error("User profile not found.");
 
-    const modal = document.createElement('div');
-    modal.className = 'social-profile-modal';
-    modal.id = 'social-profile-card-modal';
-    modal.innerHTML = `
-      <div class="social-profile-backdrop" id="profile-backdrop"></div>
-      <div class="social-profile-card animate-pop">
-        <div class="social-profile-hero">
-          <div class="social-profile-avatar-big">
-            <span>${friend.mascot}</span>
-            ${friend.outfit ? `<span class="social-profile-outfit-big">${friend.outfit}</span>` : ''}
+    // 2. Fetch relationship status
+    let relationState = 'none'; // 'none', 'friends', 'outgoing_pending', 'incoming_pending'
+    let requestId = null;
+
+    if (targetProfile.id !== userProfile.id) {
+      // Check Friendship
+      const uid1 = targetProfile.id < userProfile.id ? targetProfile.id : userProfile.id;
+      const uid2 = targetProfile.id < userProfile.id ? userProfile.id : targetProfile.id;
+
+      const { data: friendship } = await supabase
+        .from('friendships')
+        .select('*')
+        .eq('user_id_1', uid1)
+        .eq('user_id_2', uid2)
+        .maybeSingle();
+
+      if (friendship) {
+        relationState = 'friends';
+      } else {
+        // Check requests
+        const { data: req } = await supabase
+          .from('friend_requests')
+          .select('*')
+          .or(`and(sender_id.eq.${userProfile.id},receiver_id.eq.${targetProfile.id}),and(sender_id.eq.${targetProfile.id},receiver_id.eq.${userProfile.id})`)
+          .eq('status', 'pending')
+          .maybeSingle();
+
+        if (req) {
+          requestId = req.id;
+          relationState = req.sender_id === userProfile.id ? 'outgoing_pending' : 'incoming_pending';
+        }
+      }
+    }
+
+    // 3. Fetch user accomplishments (posts)
+    const { data: posts } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('user_id', targetProfile.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    // 4. Render Layout
+    content.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:15px; text-align:center;">
+        
+        <!-- Profile Header -->
+        <div style="display:flex; align-items:center; gap:15px; text-align:left;">
+          <div style="font-size: 50px; background:var(--bg-dark); border:2px solid var(--border-color); border-radius:50%; width:76px; height:76px; display:flex; align-items:center; justify-content:center;">
+            <span>${targetProfile.avatar_mascot === 'bear' ? '🐻' : targetProfile.avatar_mascot === 'cat' ? '🐱' : '🦉'}</span>
           </div>
-          <div class="social-profile-info">
-            <h3 class="social-profile-name">${friend.name}</h3>
-            <span class="social-profile-rank">${friend.rank || 'Recruit'}</span>
-            <p class="social-profile-bio">${friend.bio || 'No bio yet 😊'}</p>
+          <div style="flex:1;">
+            <h3 style="font-family:var(--font-header); margin:0 0 2px 0; font-size:18px;">${targetProfile.display_name}</h3>
+            <span style="color:var(--text-hint); font-size:12px; display:block;">@${targetProfile.username}</span>
+            <span style="background:var(--bg-hover); border:1px solid var(--border-color); border-radius:6px; font-size:10px; padding:2px 6px; font-weight:700; margin-top:4px; display:inline-block;">🎖️ ${targetProfile.military_rank}</span>
           </div>
         </div>
-        <div class="social-profile-stats-row">
-          <div class="social-profile-stat">
-            <span class="social-profile-stat-val">🔥 ${friend.streak}</span>
-            <span class="social-profile-stat-label">Streak</span>
+
+        <!-- Stats Grid (Instagram / Strava style) -->
+        <div style="display:flex; gap:8px; background:var(--bg-dark); border:2px solid var(--border-color); border-radius:10px; padding:12px; margin: 5px 0;">
+          <div style="flex:1; border-right:1px solid var(--border-color);">
+            <span style="font-size:16px; font-weight:800; color:var(--text-color); display:block;">🔥 ${targetProfile.streak}</span>
+            <span style="font-size:10px; color:var(--text-hint);">Streak</span>
           </div>
-          <div class="social-profile-stat">
-            <span class="social-profile-stat-val">⭐ ${friend.level}</span>
-            <span class="social-profile-stat-label">Level</span>
+          <div style="flex:1; border-right:1px solid var(--border-color);">
+            <span style="font-size:16px; font-weight:800; color:var(--text-color); display:block;">👑 ${targetProfile.integrity_score}%</span>
+            <span style="font-size:10px; color:var(--text-hint);">Integrity</span>
           </div>
-          <div class="social-profile-stat">
-            <span class="social-profile-stat-val">📝 ${friendPosts.length}</span>
-            <span class="social-profile-stat-label">Posts</span>
+          <div style="flex:1;">
+            <span style="font-size:16px; font-weight:800; color:var(--text-color); display:block;">⭐ ${targetProfile.xp}</span>
+            <span style="font-size:10px; color:var(--text-hint);">XP</span>
           </div>
         </div>
-        ${friendPosts.length > 0 ? `
-          <div class="social-profile-recent">
-            <p class="social-profile-recent-label">Recent Check-ins</p>
-            ${friendPosts.map(p => `
-              <div class="social-profile-recent-post">
-                <span>${p.mood}</span>
-                <p>${p.text}</p>
-                <span class="social-profile-recent-time">${formatTimeAgo(p.timestamp)}</span>
+
+        <!-- Equipped Badge Banner -->
+        ${targetProfile.equipped_badge ? `
+          <div style="background:linear-gradient(to right, var(--bg-dark), var(--bg-hover)); border:1px solid var(--border-color); border-radius:8px; padding:8px 12px; text-align:left; display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">🛡️</span>
+            <div>
+              <span style="font-size:11px; color:var(--text-hint); display:block; text-transform:uppercase; letter-spacing:0.5px;">Equipped Badge</span>
+              <strong style="font-size:12px; color:var(--text-color);">${targetProfile.equipped_badge}</strong>
+            </div>
+          </div>
+        ` : ''}
+
+        <!-- Dynamic Action Button -->
+        <div id="profile-sheet-actions">
+          ${targetProfile.id === userProfile.id ? `
+            <button class="btn btn-secondary btn-3d btn-full btn-sm" disabled style="opacity: 0.6;">This is You</button>
+          ` : relationState === 'friends' ? `
+            <button class="btn btn-secondary btn-3d btn-full btn-sm" id="remove-friend-btn">Friends ✅ (Remove)</button>
+          ` : relationState === 'outgoing_pending' ? `
+            <button class="btn btn-secondary btn-3d btn-full btn-sm" disabled style="opacity:0.7;">Request Pending ⏳</button>
+          ` : relationState === 'incoming_pending' ? `
+            <div style="display:flex; gap:8px;">
+              <button class="btn btn-primary btn-3d btn-full btn-sm" id="accept-req-btn">Accept Request</button>
+              <button class="btn btn-secondary btn-3d btn-full btn-sm" id="decline-req-btn">Ignore</button>
+            </div>
+          ` : `
+            <button class="btn btn-primary btn-3d btn-full btn-sm" id="add-friend-btn">Add Friend 🤝</button>
+          `}
+        </div>
+
+        <!-- Recent Check-ins -->
+        <div style="text-align:left; margin-top:10px;">
+          <h4 style="font-family:var(--font-header); font-size:13px; margin:0 0 8px 0; color:var(--text-hint);">Recent Check-ins</h4>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            ${!posts || posts.length === 0 ? `
+              <p style="font-size:11px; color:var(--text-hint); text-align:center;">No recent check-ins.</p>
+            ` : posts.map(p => `
+              <div style="background:var(--bg-hover); border:1px solid var(--border-color); border-radius:6px; padding:8px; font-size:12px;">
+                <div style="display:flex; justify-content:space-between; margin-bottom:2px;">
+                  <span>${p.mood}</span>
+                  <span style="font-size:10px; color:var(--text-hint);">${formatTimeAgo(p.created_at)}</span>
+                </div>
+                <p style="margin:0;">${p.text}</p>
               </div>
             `).join('')}
           </div>
-        ` : ''}
-        <button class="social-profile-challenge-btn">⚡ Send Challenge</button>
-        <button class="social-profile-close" id="profile-close-btn">✕ Close</button>
-      </div>
-    `;
-    container.appendChild(modal);
-
-    modal.querySelector('#profile-backdrop').addEventListener('click', () => { try { modal.remove(); } catch (e) {} });
-    modal.querySelector('#profile-close-btn').addEventListener('click', () => { try { modal.remove(); } catch (e) {} });
-    modal.querySelector('.social-profile-challenge-btn').addEventListener('click', () => {
-      try {
-        modal.querySelector('.social-profile-challenge-btn').textContent = '✅ Challenge Sent!';
-        modal.querySelector('.social-profile-challenge-btn').disabled = true;
-      } catch (e) {}
-    });
-  } catch (e) { console.error('[Social] Profile card error:', e); }
-}
-
-// ─── MASCOT REACTION BANNER ───────────────────────────────────────────────────
-
-function showMascotReactionBanner(container, event) {
-  try {
-    const reaction = getMascotReaction(event);
-    if (!reaction) return;
-    const banner = document.createElement('div');
-    banner.className = 'social-mascot-banner animate-pop';
-    banner.innerHTML = `
-      <span class="banner-mascot">${reaction.mascotEmoji}${reaction.outfitEmoji}</span>
-      <span class="banner-msg">${reaction.message}</span>
-    `;
-    container.insertBefore(banner, container.firstChild);
-    setTimeout(() => {
-      banner.classList.add('fade-out');
-      setTimeout(() => banner.remove(), 500);
-    }, 3500);
-  } catch (e) { console.error('[Social] Banner error:', e); }
-}
-
-// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
-
-function renderLeaderboard(friends, profile) {
-  const myEntry = { name: profile.name || 'You', streak: profile.streak || 0, mascot: '🦉', isMe: true };
-  const all = [...friends, myEntry].sort((a, b) => b.streak - a.streak);
-  const medals = ['🥇', '🥈', '🥉'];
-  return `
-    <div class="social-leaderboard card-3d">
-      <h3 class="social-lb-title">🏆 Weekly Streak Leaders</h3>
-      ${all.map((f, i) => `
-        <div class="social-lb-row ${f.isMe ? 'social-lb-row--me' : ''}">
-          <span class="social-lb-medal">${medals[i] || `#${i + 1}`}</span>
-          <span class="social-lb-mascot">${f.mascot}</span>
-          <span class="social-lb-name">${f.name}${f.isMe ? ' (You)' : ''}</span>
-          <span class="social-lb-streak">🔥 ${f.streak} days</span>
-        </div>
-      `).join('')}
-    </div>
-  `;
-}
-
-// ─── MAIN RENDER ─────────────────────────────────────────────────────────────
-
-export function renderSocial(container) {
-  try {
-    seedDemoData();
-    const data    = getSocialData();
-    const profile = getProfile();
-    let activeTab = 'foryou';
-
-    function getFilteredPosts(tab) {
-      const allPosts = data.posts;
-      if (tab === 'friends')  return allPosts.filter(p => p.authorId !== 'me');
-      if (tab === 'trending') return [...allPosts].sort((a, b) =>
-        Object.values(b.reactions || {}).reduce((s, v) => s + v, 0) -
-        Object.values(a.reactions || {}).reduce((s, v) => s + v, 0)
-      );
-      return allPosts; // for you = all
-    }
-
-    function buildFeedHTML(tab) {
-      const posts = getFilteredPosts(tab);
-      if (tab === 'trending') {
-        const trending = getTrendingTopics(data.posts);
-        const trendingHTML = trending.length > 0 ? `
-          <div class="social-trending-tags">
-            ${trending.map(([t, c]) => `<span class="social-trending-tag">${t} <em>${c}</em></span>`).join('')}
-          </div>` : '';
-        return trendingHTML + posts.map(p => renderPostCard(p, p.authorId === 'me')).join('');
-      }
-      return posts.length > 0
-        ? posts.map(p => renderPostCard(p, p.authorId === 'me')).join('')
-        : `<div class="social-empty-feed">Nothing here yet. Post a check-in! 🚀</div>`;
-    }
-
-    const unread = unreadCount(data.notifications);
-    const activeHoursAgo = data.friends.filter(f => f.streak > 0).length;
-
-    container.innerHTML = `
-      <div class="social-view">
-
-        <!-- Header -->
-        <div class="social-header">
-          <div class="social-header-left">
-            <h2 class="social-title">👥 Social</h2>
-            ${activeHoursAgo > 0
-              ? `<span class="social-live-pulse">● ${activeHoursAgo} active</span>`
-              : ''}
-          </div>
-          <button class="social-bell-btn" id="social-bell-btn" aria-label="Notifications">
-            🔔
-            ${unread > 0 ? `<span class="social-bell-badge">${unread}</span>` : ''}
-          </button>
-        </div>
-
-        <!-- Notification Panel (hidden by default) -->
-        <div id="social-notif-wrapper" class="hidden">
-          ${renderNotificationPanel(data.notifications)}
-        </div>
-
-        <!-- Mascot Banner Slot -->
-        <div id="social-banner-slot"></div>
-
-        <!-- Friends Strip -->
-        <div class="social-section">
-          <div class="social-section-label">Your Squad</div>
-          <div class="social-friends-strip" id="social-friends-strip">
-            ${data.friends.map(f => renderFriendChip(f)).join('')}
-            <div class="social-friend-chip social-add-friend" id="social-add-friend-btn">
-              <div class="social-friend-avatar social-add-avatar">➕</div>
-              <span class="social-friend-name">Add</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Leaderboard -->
-        <div class="social-section">
-          ${renderLeaderboard(data.friends, profile)}
-        </div>
-
-        <!-- Check-In Composer -->
-        <div class="social-section">
-          <div class="social-section-label">Share a Check-in</div>
-          <div class="social-composer card-3d">
-            <div class="social-composer-mood">
-              <span class="composer-label">Mood:</span>
-              <div class="mood-options" id="mood-options">
-                ${MOOD_OPTIONS.map(m => `
-                  <button class="mood-btn ${m === '🎯' ? 'mood-btn--active' : ''}" data-mood="${m}">${m}</button>
-                `).join('')}
-              </div>
-            </div>
-            <textarea id="social-checkin-text" class="social-composer-input"
-              placeholder="What did you accomplish? Share with your squad… ✍️"
-              maxlength="200" rows="3"></textarea>
-            <div class="social-composer-footer">
-              <span class="char-count" id="checkin-char-count">0 / 200</span>
-              <button class="social-post-btn" id="social-post-btn">Post 🚀</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Feed Tabs -->
-        <div class="social-section">
-          <div class="social-feed-tabs" id="social-feed-tabs">
-            <button class="social-tab-btn social-tab-btn--active" data-tab="foryou">For You</button>
-            <button class="social-tab-btn" data-tab="friends">Friends</button>
-            <button class="social-tab-btn" data-tab="trending">🔥 Trending</button>
-          </div>
-          <div class="social-feed" id="social-feed">
-            ${buildFeedHTML('foryou')}
-          </div>
         </div>
 
       </div>
-
-      <!-- Add Friend Modal -->
-      <div id="add-friend-modal" class="social-modal hidden">
-        <div class="social-modal-backdrop" id="add-friend-backdrop"></div>
-        <div class="social-modal-card card-3d animate-pop">
-          <h3>Add a Friend 🤝</h3>
-          <p class="social-modal-sub">Enter your friend's username to connect</p>
-          <input type="text" id="add-friend-input" class="social-modal-input" placeholder="Friend's name…" maxlength="30" />
-          <div class="social-modal-actions">
-            <button class="social-modal-cancel" id="add-friend-cancel">Cancel</button>
-            <button class="social-modal-confirm" id="add-friend-confirm">Add Friend ✅</button>
-          </div>
-        </div>
-      </div>
     `;
 
-    // ── Notification Bell ──────────────────────────────────────────────────────
-    const bellBtn       = container.querySelector('#social-bell-btn');
-    const notifWrapper  = container.querySelector('#social-notif-wrapper');
-    let notifOpen = false;
-
-    bellBtn.addEventListener('click', () => {
-      try {
-        notifOpen = !notifOpen;
-        notifWrapper.classList.toggle('hidden', !notifOpen);
-        if (notifOpen) {
-          markAllNotificationsRead();
-          const badge = bellBtn.querySelector('.social-bell-badge');
-          if (badge) badge.remove();
-        }
-      } catch (e) { console.error('[Social] Bell toggle error:', e); }
-    });
-
-    const markReadBtn = container.querySelector('#social-mark-read-btn');
-    if (markReadBtn) {
-      markReadBtn.addEventListener('click', () => {
+    // Bind action button actions
+    const actArea = content.querySelector('#profile-sheet-actions');
+    
+    // Add Friend
+    const addBtn = actArea.querySelector('#add-friend-btn');
+    if (addBtn) {
+      addBtn.onclick = async () => {
+        addBtn.disabled = true;
         try {
-          markAllNotificationsRead();
-          container.querySelectorAll('.social-notif-item--unread').forEach(el => el.classList.remove('social-notif-item--unread'));
-          container.querySelectorAll('.social-notif-dot').forEach(el => el.remove());
-        } catch (e) { console.error('[Social] Mark read error:', e); }
-      });
+          const { error } = await supabase.from('friend_requests').insert({
+            sender_id: userProfile.id,
+            receiver_id: targetProfile.id,
+            status: 'pending'
+          });
+          if (error) throw error;
+          showToast("Friend request sent! ⏳", "success");
+          overlay.classList.add('hidden');
+        } catch (err) {
+          showToast(err.message, "error");
+          addBtn.disabled = false;
+        }
+      };
     }
 
-    // ── Feed Tabs ──────────────────────────────────────────────────────────────
-    container.querySelectorAll('.social-tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+    // Accept Request
+    const acceptBtn = actArea.querySelector('#accept-req-btn');
+    if (acceptBtn) {
+      acceptBtn.onclick = async () => {
+        acceptBtn.disabled = true;
         try {
-          container.querySelectorAll('.social-tab-btn').forEach(b => b.classList.remove('social-tab-btn--active'));
-          btn.classList.add('social-tab-btn--active');
-          activeTab = btn.dataset.tab;
-          const feed = container.querySelector('#social-feed');
-          feed.innerHTML = buildFeedHTML(activeTab);
-          bindFeedEvents(feed);
-        } catch (e) { console.error('[Social] Tab switch error:', e); }
-      });
-    });
+          await supabase.from('friend_requests').update({ status: 'accepted' }).eq('id', requestId);
+          const uid1 = targetProfile.id < userProfile.id ? targetProfile.id : userProfile.id;
+          const uid2 = targetProfile.id < userProfile.id ? userProfile.id : targetProfile.id;
+          await supabase.from('friendships').insert({ user_id_1: uid1, user_id_2: uid2 });
+          showToast("Friend request accepted!", "success");
+          playUnlockSound();
+          overlay.classList.add('hidden');
+          // Re-render feed
+          const viewport = container.querySelector('#social-viewport');
+          if (viewport) renderFeedTab(viewport, userProfile, container);
+        } catch (err) {
+          showToast(err.message, "error");
+          acceptBtn.disabled = false;
+        }
+      };
+    }
 
-    // ── Mood Selector ─────────────────────────────────────────────────────────
-    let selectedMood = '🎯';
-    container.querySelectorAll('.mood-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
+    // Decline Request
+    const declineBtn = actArea.querySelector('#decline-req-btn');
+    if (declineBtn) {
+      declineBtn.onclick = async () => {
+        declineBtn.disabled = true;
         try {
-          container.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('mood-btn--active'));
-          btn.classList.add('mood-btn--active');
-          selectedMood = btn.dataset.mood;
-        } catch (e) { console.error('[Social] Mood error:', e); }
-      });
-    });
-
-    // ── Char Counter ──────────────────────────────────────────────────────────
-    const textInput = container.querySelector('#social-checkin-text');
-    const charCount = container.querySelector('#checkin-char-count');
-    textInput.addEventListener('input', () => {
-      try { charCount.textContent = `${textInput.value.length} / 200`; }
-      catch (e) { console.error('[Social] Char count error:', e); }
-    });
-
-    // ── Post Check-in ─────────────────────────────────────────────────────────
-    container.querySelector('#social-post-btn').addEventListener('click', () => {
-      try {
-        const text = textInput.value.trim();
-        if (!text) {
-          textInput.classList.add('shake');
-          setTimeout(() => textInput.classList.remove('shake'), 500);
-          return;
+          await supabase.from('friend_requests').delete().eq('id', requestId);
+          showToast("Request ignored.", "info");
+          overlay.classList.add('hidden');
+        } catch (err) {
+          showToast(err.message, "error");
+          declineBtn.disabled = false;
         }
-        const post = postCheckIn(text, selectedMood);
-        if (post) {
-          textInput.value = '';
-          charCount.textContent = '0 / 200';
-          // Update local data reference
-          data.posts.unshift(post);
-          const feed = container.querySelector('#social-feed');
-          const div  = document.createElement('div');
-          div.innerHTML = renderPostCard(post, true);
-          const card = div.firstElementChild;
-          card.classList.add('animate-pop');
-          feed.insertBefore(card, feed.firstChild);
-          bindFeedEvents(feed);
-          showMascotReactionBanner(container.querySelector('#social-banner-slot'), 'check_in_posted');
+      };
+    }
+
+    // Remove Friend
+    const removeBtn = actArea.querySelector('#remove-friend-btn');
+    if (removeBtn) {
+      removeBtn.onclick = async () => {
+        if (confirm(`Are you sure you want to remove @${targetProfile.username} from your squad?`)) {
+          removeBtn.disabled = true;
+          try {
+            const uid1 = targetProfile.id < userProfile.id ? targetProfile.id : userProfile.id;
+            const uid2 = targetProfile.id < userProfile.id ? userProfile.id : targetProfile.id;
+            
+            await supabase.from('friendships').delete().eq('user_id_1', uid1).eq('user_id_2', uid2);
+            await supabase.from('friend_requests').delete().or(`and(sender_id.eq.${userProfile.id},receiver_id.eq.${targetProfile.id}),and(sender_id.eq.${targetProfile.id},receiver_id.eq.${userProfile.id})`);
+            
+            showToast("Friend removed.", "info");
+            overlay.classList.add('hidden');
+            // Re-render squad
+            const viewport = container.querySelector('#social-viewport');
+            if (viewport) {
+              const activeTabBtn = container.querySelector('.social-tab-btn.active');
+              const activeTab = activeTabBtn ? activeTabBtn.getAttribute('data-tab') : 'feed';
+              renderTabContent(viewport, activeTab, userProfile, container);
+            }
+          } catch (err) {
+            showToast(err.message, "error");
+            removeBtn.disabled = false;
+          }
         }
-      } catch (e) { console.error('[Social] Post submit error:', e); }
-    });
-
-    // ── Friend Chips → Profile Cards ──────────────────────────────────────────
-    function bindFriendChips() {
-      container.querySelectorAll('.social-friend-chip[data-friend-id]').forEach(chip => {
-        chip.addEventListener('click', () => {
-          try {
-            const id = chip.dataset.friendId;
-            const friend = data.friends.find(f => f.id === id);
-            if (friend) openProfileCard(friend, container);
-          } catch (e) { console.error('[Social] Friend chip error:', e); }
-        });
-      });
+      };
     }
-    bindFriendChips();
 
-    // ── Avatar clicks → Profile Cards ─────────────────────────────────────────
-    function bindFeedEvents(feed) {
-      // Avatar clicks
-      feed.querySelectorAll('.social-avatar--clickable').forEach(av => {
-        av.addEventListener('click', () => {
-          try {
-            const friendId = av.dataset.friendId;
-            const friend = data.friends.find(f => f.id === friendId);
-            if (friend) openProfileCard(friend, container);
-          } catch (e) { console.error('[Social] Avatar click error:', e); }
-        });
-      });
-
-      // Likes (heart button)
-      feed.querySelectorAll('.tw-like-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId   = btn.dataset.postId;
-            const newCount = likePost(postId);
-            const localPost = data.posts.find(p => p.id === postId);
-            if (localPost) localPost.likes = newCount;
-            // Animate heart
-            const heart = btn.querySelector('.tw-heart-icon');
-            if (heart) {
-              heart.classList.add('tw-heart--liked');
-              btn.classList.add('tw-like-btn--liked');
-            }
-            // Update count display
-            const countEl = btn.querySelector('.tw-like-count');
-            if (countEl) countEl.textContent = newCount > 0 ? newCount : '';
-            btn.disabled = true;
-          } catch (e) { console.error('[Social] Like btn error:', e); }
-        });
-      });
-
-
-      // Reply toggle
-      feed.querySelectorAll('.social-reply-toggle-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId   = btn.dataset.postId;
-            const composer = feed.querySelector(`#reply-composer-${postId}`);
-            if (composer) {
-              composer.classList.toggle('hidden');
-              if (!composer.classList.contains('hidden')) {
-                composer.querySelector('input').focus();
-              }
-            }
-          } catch (e) { console.error('[Social] Reply toggle error:', e); }
-        });
-      });
-
-      // Reply submit
-      feed.querySelectorAll('.social-reply-submit').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId = btn.dataset.postId;
-            const input  = feed.querySelector(`.social-reply-input[data-post-id="${postId}"]`);
-            if (!input || !input.value.trim()) return;
-            const reply = addReply(postId, input.value);
-            if (reply) {
-              input.value = '';
-              const card = feed.querySelector(`[data-post-id="${postId}"]`);
-              if (card) {
-                const updatedData = getSocialData();
-                const post = updatedData.posts.find(p => p.id === postId);
-                const localPost = data.posts.find(p => p.id === postId);
-                if (localPost && post) localPost.replies = post.replies;
-                // Re-render replies thread (Twitter layout)
-                const repliesThread = card.querySelector(`#tw-replies-${postId}`);
-                if (repliesThread) {
-                  repliesThread.innerHTML = renderReplies(post || localPost);
-                  // Add thread line if not present
-                  const avatarCol = card.querySelector('.tw-avatar-col');
-                  if (avatarCol && !avatarCol.querySelector('.tw-thread-line')) {
-                    const line = document.createElement('div');
-                    line.className = 'tw-thread-line';
-                    avatarCol.appendChild(line);
-                  }
-                }
-                // Update reply button count
-                const toggleBtn = card.querySelector('.social-reply-toggle-btn');
-                const updatedPost = data.posts.find(p => p.id === postId);
-                if (toggleBtn && updatedPost) {
-                  toggleBtn.textContent = `💬 Reply (${(updatedPost.replies || []).length})`;
-                }
-              }
-            }
-          } catch (e) { console.error('[Social] Reply submit error:', e); }
-        });
-      });
-
-      // Repost
-      feed.querySelectorAll('.social-repost-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          try {
-            const postId  = btn.dataset.postId;
-            const postData = data.posts.find(p => p.id === postId);
-            if (!postData) return;
-            const repost = repostPost(postData);
-            if (repost) {
-              data.posts.unshift(repost);
-              const div = document.createElement('div');
-              div.innerHTML = renderPostCard(repost, true);
-              const card = div.firstElementChild;
-              card.classList.add('animate-pop');
-              feed.insertBefore(card, feed.firstChild);
-              bindFeedEvents(feed);
-              btn.textContent = '✅ Reposted!';
-              btn.disabled = true;
-            }
-          } catch (e) { console.error('[Social] Repost error:', e); }
-        });
-      });
-    }
-    bindFeedEvents(container.querySelector('#social-feed'));
-
-    // ── Add Friend Modal ───────────────────────────────────────────────────────
-    const addBtn     = container.querySelector('#social-add-friend-btn');
-    const modal      = container.querySelector('#add-friend-modal');
-    const backdrop   = container.querySelector('#add-friend-backdrop');
-    const cancelBtn  = container.querySelector('#add-friend-cancel');
-    const confirmBtn = container.querySelector('#add-friend-confirm');
-    const friendInput = container.querySelector('#add-friend-input');
-
-    addBtn.addEventListener('click', () => {
-      try { modal.classList.remove('hidden'); friendInput.focus(); }
-      catch (e) { console.error('[Social] Modal open error:', e); }
-    });
-    [backdrop, cancelBtn].forEach(el => el.addEventListener('click', () => {
-      try { modal.classList.add('hidden'); friendInput.value = ''; }
-      catch (e) { console.error('[Social] Modal close error:', e); }
-    }));
-    confirmBtn.addEventListener('click', () => {
-      try {
-        const name = friendInput.value.trim();
-        if (!name) return;
-        const mascots  = ['🦉', '🐻', '🐱', '🐺', '🦊'];
-        const outfits  = ['', '👔', '🧑‍🚀', '🥷', '🤠', '🧙'];
-        const newFriend = {
-          id: 'friend_' + Date.now(),
-          name: name.substring(0, 20),
-          mascot: mascots[Math.floor(Math.random() * mascots.length)],
-          streak: Math.floor(Math.random() * 10),
-          level: Math.floor(Math.random() * 5) + 1,
-          outfit: outfits[Math.floor(Math.random() * outfits.length)],
-          rank: 'Recruit',
-          bio: 'New to Odyssey! 🎯'
-        };
-        const d2 = getSocialData();
-        d2.friends.push(newFriend);
-        // Add notification
-        d2.notifications = d2.notifications || [];
-        d2.notifications.unshift({ id: 'n_' + Date.now(), icon: '🤝', text: `You added ${newFriend.name} as a friend!`, time: Date.now(), read: false });
-        saveSocialData(d2);
-        data.friends.push(newFriend);
-        const strip   = container.querySelector('#social-friends-strip');
-        const addChip = strip.querySelector('.social-add-friend');
-        const chipDiv = document.createElement('div');
-        chipDiv.innerHTML = renderFriendChip(newFriend);
-        strip.insertBefore(chipDiv.firstElementChild, addChip);
-        bindFriendChips();
-        modal.classList.add('hidden');
-        friendInput.value = '';
-        showMascotReactionBanner(container.querySelector('#social-banner-slot'), 'new_friend');
-      } catch (e) { console.error('[Social] Add friend error:', e); }
-    });
-
-  } catch (e) {
-    console.error('[Social] Render error:', e);
-    container.innerHTML = `<div class="social-error">⚠️ Social tab failed to load. Please refresh.</div>`;
+  } catch (err) {
+    content.innerHTML = `<p style="color:var(--duo-red); text-align:center; padding:20px;">Error: ${err.message}</p>`;
   }
 }

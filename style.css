@@ -4138,3 +4138,72 @@ canvas {
   border-radius: 3px;
   transition: width 0.6s ease;
 }
+
+/* --- INSTAGRAM / STRAVA PROFILE BOTTOM SHEET --- */
+.profile-sheet-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.profile-sheet-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 1;
+}
+
+.profile-sheet {
+  position: relative;
+  background: var(--bg-surface);
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border-top: 3px solid var(--border-color);
+  padding: 16px 20px 30px 20px;
+  z-index: 2;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.3);
+  animation: slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  max-height: 85%;
+  overflow-y: auto;
+}
+
+.profile-sheet-handle {
+  width: 36px;
+  height: 5px;
+  background: var(--border-color);
+  border-radius: 3px;
+  margin: 0 auto 15px auto;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.auth-tabs button.active {
+  color: var(--text-color) !important;
+  border-bottom: 3px solid var(--duo-blue) !important;
+}
+
+.auth-tabs button {
+  transition: all 0.2s ease;
+}
+
+.social-auth-card {
+  box-shadow: var(--shadow-card);
+}
+
