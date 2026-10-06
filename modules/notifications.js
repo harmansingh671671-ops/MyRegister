@@ -11,11 +11,11 @@ function getAudioContext() {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
     if (audioCtx.state === 'suspended') {
-      audioCtx.resume().catch(e => console.warn('Audio context resume failed:', e));
+      audioCtx.resume().catch(e => warn('Audio context resume failed:', e));
     }
     return audioCtx;
   } catch (e) {
-    console.warn('Audio context unavailable:', e);
+    warn('Audio context unavailable:', e);
     return null;
   }
 }
@@ -93,7 +93,7 @@ export function playSuccessSound() {
       });
     }
   } catch (e) {
-    console.warn('Audio play blocked or failed:', e);
+    warn('Audio play blocked or failed:', e);
   }
 }
 
@@ -140,7 +140,7 @@ export function playPivotSound() {
     osc.start(now);
     osc.stop(now + 0.5);
   } catch (e) {
-    console.warn('Pivot audio play failed:', e);
+    warn('Pivot audio play failed:', e);
   }
 }
 
@@ -217,7 +217,7 @@ export function playUnlockSound() {
       });
     }
   } catch (e) {
-    console.warn('Unlock audio play failed:', e);
+    warn('Unlock audio play failed:', e);
   }
 }
 
@@ -231,7 +231,7 @@ export async function requestNotificationPermission() {
     }
     return false;
   } catch (e) {
-    console.warn('Notification permission request failed:', e);
+    warn('Notification permission request failed:', e);
     return false;
   }
 }
@@ -246,7 +246,7 @@ export function sendPushNotification(title, body) {
     });
     return true;
   } catch (e) {
-    console.error('Notification spawn failed:', e);
+    error('Notification spawn failed:', e);
     return false;
   }
 }
@@ -280,7 +280,7 @@ function ensureDialogElements() {
 
     return { toastContainer, dialogOverlay };
   } catch (e) {
-    console.error('Dialog element creation failed:', e);
+    error('Dialog element creation failed:', e);
     return null;
   }
 }
@@ -312,7 +312,7 @@ export function showToast(message, type = 'info') {
       setTimeout(() => toast.remove(), 300);
     }, 3200);
   } catch (e) {
-    console.error('Toast creation failed:', e);
+    error('Toast creation failed:', e);
   }
 }
 
@@ -355,7 +355,7 @@ export function showConfirm(message, title = 'Confirm Action') {
       dialogOverlay.querySelector('#confirm-cancel-btn').onclick = () => handleResolve(false);
       dialogOverlay.querySelector('#confirm-ok-btn').onclick = () => handleResolve(true);
     } catch (e) {
-      console.error('Confirm dialog error:', e);
+      error('Confirm dialog error:', e);
       resolve(false);
     }
   });
@@ -407,7 +407,7 @@ export function showPrompt(message, defaultText = '', title = 'Enter Details') {
         if (e.key === 'Enter') handleResolve(inputEl.value);
       };
     } catch (e) {
-      console.error('Prompt dialog error:', e);
+      error('Prompt dialog error:', e);
       resolve(null);
     }
   });

@@ -305,7 +305,7 @@ function getCompletedLessons() {
     const profile = getProfile();
     return Array.isArray(profile.completedLessons) ? profile.completedLessons : [];
   } catch (e) {
-    console.error('[Learn] Error reading completed lessons:', e);
+    error('[Learn] Error reading completed lessons:', e);
     return [];
   }
 }
@@ -322,7 +322,7 @@ function markLessonComplete(lessonId) {
     }
     return false; // already completed
   } catch (e) {
-    console.error('[Learn] Error marking lesson complete:', e);
+    error('[Learn] Error marking lesson complete:', e);
     return false;
   }
 }
@@ -390,7 +390,7 @@ function computePeakWindows(wakeTime) {
       }
     ];
   } catch (e) {
-    console.error('[Learn] Circadian calculation error:', e);
+    error('[Learn] Circadian calculation error:', e);
     return [];
   }
 }
@@ -451,10 +451,10 @@ function openLessonModal(lesson, completedLessons, container) {
 
     // Close handlers
     modal.querySelector('#learn-modal-backdrop').addEventListener('click', () => {
-      try { modal.remove(); } catch (e) { console.error('[Learn] Modal close error:', e); }
+      try { modal.remove(); } catch (e) { error('[Learn] Modal close error:', e); }
     });
     modal.querySelector('#learn-modal-close').addEventListener('click', () => {
-      try { modal.remove(); } catch (e) { console.error('[Learn] Modal close error:', e); }
+      try { modal.remove(); } catch (e) { error('[Learn] Modal close error:', e); }
     });
 
     if (isCompleted) return;
@@ -477,7 +477,7 @@ function openLessonModal(lesson, completedLessons, container) {
             submitBtn.disabled = false;
             submitBtn.classList.add('learn-quiz-submit--ready');
           }
-        } catch (e) { console.error('[Learn] Quiz option error:', e); }
+        } catch (e) { error('[Learn] Quiz option error:', e); }
       });
     });
 
@@ -522,11 +522,11 @@ function openLessonModal(lesson, completedLessons, container) {
             submitBtn.classList.remove('learn-quiz-submit--ready');
           }, 1500);
         }
-      } catch (e) { console.error('[Learn] Quiz submit error:', e); }
+      } catch (e) { error('[Learn] Quiz submit error:', e); }
     });
 
   } catch (e) {
-    console.error('[Learn] Open lesson modal error:', e);
+    error('[Learn] Open lesson modal error:', e);
   }
 }
 
@@ -574,13 +574,13 @@ function openBookModal(book, container) {
 
     container.appendChild(modal);
     modal.querySelector('#learn-book-backdrop').addEventListener('click', () => {
-      try { modal.remove(); } catch (e) { console.error('[Learn] Book modal close error:', e); }
+      try { modal.remove(); } catch (e) { error('[Learn] Book modal close error:', e); }
     });
     modal.querySelector('#learn-book-close').addEventListener('click', () => {
-      try { modal.remove(); } catch (e) { console.error('[Learn] Book modal close error:', e); }
+      try { modal.remove(); } catch (e) { error('[Learn] Book modal close error:', e); }
     });
   } catch (e) {
-    console.error('[Learn] Open book modal error:', e);
+    error('[Learn] Open book modal error:', e);
   }
 }
 
@@ -705,7 +705,7 @@ export function renderLearn(container) {
           </div>
         `).join('');
         resultsEl.classList.remove('hidden');
-      } catch (e) { console.error('[Learn] Calc error:', e); }
+      } catch (e) { error('[Learn] Calc error:', e); }
     });
 
     // ── Lesson Cards ───────────────────────────────────────────────────────
@@ -716,7 +716,7 @@ export function renderLearn(container) {
           const lessonId = card.dataset.lessonId;
           const lesson = LESSONS.find(l => l.id === lessonId);
           if (lesson) openLessonModal(lesson, getCompletedLessons(), container);
-        } catch (e) { console.error('[Learn] Card click error:', e); }
+        } catch (e) { error('[Learn] Card click error:', e); }
       });
     });
 
@@ -731,7 +731,7 @@ export function renderLearn(container) {
           const isOpen = !body.classList.contains('hidden');
           body.classList.toggle('hidden');
           btn.textContent = isOpen ? 'Read More ▾' : 'Collapse ▴';
-        } catch (e) { console.error('[Learn] Case toggle error:', e); }
+        } catch (e) { error('[Learn] Case toggle error:', e); }
       });
     });
 
@@ -743,12 +743,12 @@ export function renderLearn(container) {
           const bookId = spine.dataset.bookId;
           const book = BOOKS.find(b => b.id === bookId);
           if (book) openBookModal(book, container);
-        } catch (e) { console.error('[Learn] Book spine click error:', e); }
+        } catch (e) { error('[Learn] Book spine click error:', e); }
       });
     });
 
   } catch (e) {
-    console.error('[Learn] Render error:', e);
+    error('[Learn] Render error:', e);
     container.innerHTML = `<div class="learn-error">⚠️ Learn tab failed to load. Please refresh.</div>`;
   }
 }

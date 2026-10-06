@@ -4,11 +4,13 @@
 import { supabase } from './supabase.js';
 import { getProfile, saveProfile } from './storage.js';
 import { showToast } from './notifications.js';
+import { sanitizeHTML, sanitizeAttribute } from './security.js';
+import { error } from './logger.js';
 
 export function renderAuthScreen(container, onAuthSuccess) {
-  container.innerHTML = `
+  container.innerHTML = sanitizeHTML(`
     <div class="social-auth-card card-3d animate-pop" style="max-width: 380px; margin: 60px auto; padding: 25px;">
-      <h2 style="font-family: var(--font-header); text-align: center; margin-bottom: 6px;">👥 Odyssey Squad</h2>
+      <h2 style="font-family: var(--font-header); text-align: center; margin-bottom: 6px;">\ud83d\udc65 Odyssey Squad</h2>
       <p class="hint" style="text-align: center; margin-bottom: 20px;">Connect with friends, track streaks, and build habits together.</p>
       
       <div class="auth-tabs" style="display: flex; border-bottom: 2px solid var(--border-color); margin-bottom: 20px;">
@@ -26,10 +28,10 @@ export function renderAuthScreen(container, onAuthSuccess) {
         </div>
         <input type="password" id="auth-password" class="social-modal-input" placeholder="Password (min 6 characters)" required style="width: 100%;" />
         
-        <button type="submit" class="btn btn-primary btn-3d btn-full" id="auth-submit-btn" style="margin-top: 10px;">Log In 🚀</button>
+        <button type="submit" class="btn btn-primary btn-3d btn-full" id="auth-submit-btn" style="margin-top: 10px;">Log In \ud83d\ude80</button>
       </form>
     </div>
-  `;
+  `);
 
   const tabLogin = container.querySelector('#tab-login');
   const tabSignup = container.querySelector('#tab-signup');
@@ -50,7 +52,7 @@ export function renderAuthScreen(container, onAuthSuccess) {
     tabSignup.classList.remove('active');
     tabSignup.style.color = 'var(--text-hint)';
     signupFields.classList.add('hidden');
-    authSubmitBtn.textContent = 'Log In 🚀';
+    authSubmitBtn.textContent = sanitizeHTML('Log In \ud83d\ude80');
     usernameInput.placeholder = 'username';
   };
 
@@ -61,7 +63,7 @@ export function renderAuthScreen(container, onAuthSuccess) {
     tabLogin.classList.remove('active');
     tabLogin.style.color = 'var(--text-hint)';
     signupFields.classList.remove('hidden');
-    authSubmitBtn.textContent = 'Sign Up 🎉';
+    authSubmitBtn.textContent = sanitizeHTML('Sign Up \ud83c\udf89');
     usernameInput.placeholder = 'unique_username';
   };
 
@@ -71,7 +73,7 @@ export function renderAuthScreen(container, onAuthSuccess) {
     const password = container.querySelector('#auth-password').value;
 
     authSubmitBtn.disabled = true;
-    authSubmitBtn.textContent = 'Processing...';
+    authSubmitBtn.textContent = sanitizeHTML('Processing...');
 
     // Derive a unique email format for the Auth backend
     const derivedEmail = `${username}@odyssey.internal`;
@@ -81,7 +83,7 @@ export function renderAuthScreen(container, onAuthSuccess) {
         const name = container.querySelector('#auth-name').value.trim();
 
         if (username.length < 3) {
-          throw new Error("Username must be at least 3 characters.");
+          throw new Error(sanitizeHTML('Username must be at least 3 characters.'));
         }
 
         // Check availability in profiles table
@@ -91,9 +93,9 @@ export function renderAuthScreen(container, onAuthSuccess) {
           .eq('username', username)
           .maybeSingle();
 
-        if (checkError) throw checkError;
+        if (checkError) throw new Error(sanitizeHTML(checkError.message));
         if (taken) {
-          throw new Error("Username already taken! ❌");
+          throw new Error(sanitizeHTML('Username already taken! \u274c'));
         }
 
         const { error } = await supabase.auth.signUp({
@@ -101,7 +103,7 @@ export function renderAuthScreen(container, onAuthSuccess) {
           password,
           options: { data: { name: name || 'New Player', username } }
         });
-        if (error) throw error;
+        if (error) throw new Error(sanitizeHTML(error.message));
         
         // Sync profile table immediately (if automatically signed in)
         const { data: { session } } = await supabase.auth.getSession();
@@ -114,24 +116,25 @@ export function renderAuthScreen(container, onAuthSuccess) {
               display_name: name || 'New Player',
               email: derivedEmail
             });
-          if (upsertError) throw upsertError;
+          if (upsertError) throw new Error(sanitizeHTML(upsertError.message));
         }
 
-        showToast("Registration successful! 🎉", "success");
+        showToast(sanitizeHTML('Registration successful! \ud83c\udf89'), "success");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ 
           email: derivedEmail, 
           password 
         });
-        if (error) throw error;
-        showToast("Welcome back!", "success");
+        if (error) throw new Error(sanitizeHTML(error.message));
+        showToast(sanitizeHTML('Welcome back!'), "success");
       }
       
       if (onAuthSuccess) onAuthSuccess();
     } catch (err) {
-      showToast(err.message, "error");
+      error('Auth error:', err);
+      showToast(sanitizeHTML(err.message), "error");
       authSubmitBtn.disabled = false;
-      authSubmitBtn.textContent = isSignUp ? 'Sign Up 🎉' : 'Log In 🚀';
+      authSubmitBtn.textContent = sanitizeHTML(isSignUp ? 'Sign Up \ud83c\udf89' : 'Log In \ud83d\ude80');
     }
   };
 }

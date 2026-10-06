@@ -1,5 +1,6 @@
 // Modules/onboarding.js
 import { getProfile, saveProfile } from './storage.js';
+import { sanitizeHTML, sanitizeAttribute } from './security.js';
 
 export function renderOnboarding(container, onComplete) {
   let step = 1;
@@ -84,7 +85,7 @@ export function renderOnboarding(container, onComplete) {
       const monthSelect = createCustomDropdown("ob-dob-month", "Month", months);
       const yearSelect = createCustomDropdown("ob-dob-year", "Year", years);
 
-      container.innerHTML = `
+      container.innerHTML = sanitizeHTML(`
         <div class="onboarding-card card-3d animate-pop">
           <div class="onboarding-header">
             <h2>🦉 Welcome to Odyssey!</h2>
@@ -142,7 +143,7 @@ export function renderOnboarding(container, onComplete) {
         renderStep();
       };
     } else if (step === 2) {
-      container.innerHTML = `
+      container.innerHTML = sanitizeHTML(`
         <div class="onboarding-card card-3d animate-pop" style="max-height: 90%; overflow-y: auto;">
           <div class="onboarding-header">
             <h2>🎯 Prioritize Your Goals</h2>
@@ -210,7 +211,7 @@ export function renderOnboarding(container, onComplete) {
     if (!listEl) return;
 
     if (goalsList.length === 0) {
-      listEl.innerHTML = `<li class="goal-empty-placeholder">No goals added yet. Add some above to start!</li>`;
+      listEl.innerHTML = sanitizeHTML(`<li class="goal-empty-placeholder">No goals added yet. Add some above to start!</li>`;
       return;
     }
 

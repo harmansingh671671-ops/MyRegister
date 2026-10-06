@@ -86,7 +86,7 @@ function seedDemoData() {
       saveSocialData(data);
     }
   } catch (e) {
-    console.error('[Social] Error seeding demo data:', e);
+    error('[Social] Error seeding demo data:', e);
   }
 }
 
@@ -155,7 +155,7 @@ function postCheckIn(text, activity, mood) {
     saveSocialData(data);
     return newPost;
   } catch (e) {
-    console.error('[Social] Post error:', e);
+    error('[Social] Post error:', e);
     return null;
   }
 }
@@ -175,7 +175,7 @@ function sendVibeToPost(postId, vibeType) {
     saveSocialData(data);
     return post.vibes[vibeType];
   } catch (e) {
-    console.error('[Social] Send vibe error:', e);
+    error('[Social] Send vibe error:', e);
     return 0;
   }
 }
@@ -202,7 +202,7 @@ function addReplyToPost(postId, replyText) {
     saveSocialData(data);
     return reply;
   } catch (e) {
-    console.error('[Social] Add reply error:', e);
+    error('[Social] Add reply error:', e);
     return null;
   }
 }
@@ -213,7 +213,7 @@ function markAllNotificationsRead() {
     (data.notifications || []).forEach(n => n.read = true);
     saveSocialData(data);
   } catch (e) {
-    console.error('[Social] Mark read error:', e);
+    error('[Social] Mark read error:', e);
   }
 }
 
@@ -236,7 +236,7 @@ function renderReplies(post) {
       </div>
     `).join('');
   } catch (e) {
-    console.error('[Social] Render replies error:', e);
+    error('[Social] Render replies error:', e);
     return '';
   }
 }
@@ -325,7 +325,7 @@ function renderPostCard(post, isOwn = false) {
       </div>
     `;
   } catch (e) {
-    console.error('[Social] Render post card error:', e);
+    error('[Social] Render post card error:', e);
     return '';
   }
 }
@@ -344,7 +344,7 @@ function renderFriendChip(friend) {
       </div>
     `;
   } catch (e) {
-    console.error('[Social] Render friend chip error:', e);
+    error('[Social] Render friend chip error:', e);
     return '';
   }
 }
@@ -375,7 +375,7 @@ function renderNotificationPanel(notifications) {
       </div>
     `;
   } catch (e) {
-    console.error('[Social] Render notification panel error:', e);
+    error('[Social] Render notification panel error:', e);
     return '';
   }
 }
@@ -401,7 +401,7 @@ function renderLeaderboard(friends, profile) {
       </div>
     `;
   } catch (e) {
-    console.error('[Social] Render leaderboard error:', e);
+    error('[Social] Render leaderboard error:', e);
     return '';
   }
 }
@@ -484,7 +484,7 @@ function openProfileCard(friend, container) {
       } catch (e) {}
     });
   } catch (e) {
-    console.error('[Social] Error opening profile card:', e);
+    error('[Social] Error opening profile card:', e);
   }
 }
 
@@ -517,7 +517,7 @@ function showMascotReactionBanner(container, event) {
       } catch (e) {}
     }, 4000);
   } catch (e) {
-    console.error('[Social] Mascot banner error:', e);
+    error('[Social] Mascot banner error:', e);
   }
 }
 
@@ -544,7 +544,7 @@ function createFloatingVibeElement(button, emoji) {
       try { floatEl.remove(); } catch (e) {}
     }, 1500);
   } catch (e) {
-    console.error('[Social] Floating vibe animation error:', e);
+    error('[Social] Floating vibe animation error:', e);
   }
 }
 
@@ -683,7 +683,7 @@ export function renderSocial(container) {
           if (badge) badge.remove();
         }
       } catch (e) {
-        console.error('[Social] Bell toggle error:', e);
+        error('[Social] Bell toggle error:', e);
       }
     });
 
@@ -699,7 +699,7 @@ export function renderSocial(container) {
           saveSocialData(socialData);
           container.querySelector('.finch-notif-list').innerHTML = `<div class="finch-notif-empty">No new vibes. Share updates to inspire the squad! 👥</div>`;
         } catch (e) {
-          console.error('[Social] Mark notifications read error:', e);
+          error('[Social] Mark notifications read error:', e);
         }
       });
     }
@@ -720,7 +720,7 @@ export function renderSocial(container) {
           btn.classList.add('mood-btn--active');
           selectedMood = btn.dataset.mood;
         } catch (e) {
-          console.error('[Social] Mood selection error:', e);
+          error('[Social] Mood selection error:', e);
         }
       });
     });
@@ -764,7 +764,7 @@ export function renderSocial(container) {
           showMascotReactionBanner(container.querySelector('#finch-banner-slot'), 'check_in_posted');
         }
       } catch (e) {
-        console.error('[Social] Submit check-in error:', e);
+        error('[Social] Submit check-in error:', e);
       }
     });
 
@@ -777,7 +777,7 @@ export function renderSocial(container) {
             const friend = data.friends.find(f => f.id === id);
             if (friend) openProfileCard(friend, container);
           } catch (e) {
-            console.error('[Social] Friend chip click error:', e);
+            error('[Social] Friend chip click error:', e);
           }
         });
       });
@@ -858,7 +858,7 @@ export function renderSocial(container) {
         
         showMascotReactionBanner(container.querySelector('#finch-banner-slot'), 'new_friend');
       } catch (e) {
-        console.error('[Social] Add partner error:', e);
+        error('[Social] Add partner error:', e);
       }
     });
 
@@ -947,7 +947,7 @@ export function renderSocial(container) {
               showMascotReactionBanner(container.querySelector('#finch-banner-slot'), 'reaction_received');
             }
           } catch (err) {
-            console.error('[Social] Error selecting vibe:', err);
+            error('[Social] Error selecting vibe:', err);
           }
         });
       });
@@ -1007,7 +1007,7 @@ export function renderSocial(container) {
               }
             }
           } catch (err) {
-            console.error('[Social] Error submitting comment:', err);
+            error('[Social] Error submitting comment:', err);
           }
         });
       });
@@ -1016,7 +1016,7 @@ export function renderSocial(container) {
     bindFeedItemEvents(container.querySelector('#finch-feed'));
 
   } catch (e) {
-    console.error('[Social] Render error:', e);
+    error('[Social] Render error:', e);
     container.innerHTML = `<div class="social-error">⚠️ Social tab failed to load. Please refresh.</div>`;
   }
 }

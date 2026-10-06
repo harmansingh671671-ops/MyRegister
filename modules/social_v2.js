@@ -64,7 +64,7 @@ async function checkUserSession(container) {
       }
     }
   } catch (err) {
-    console.error('[Social] Session check failed:', err);
+    error('[Social] Session check failed:', err);
     container.innerHTML = `
       <div class="card card-3d" style="text-align: center; padding: 25px; border-color: var(--duo-red);">
         <h3>⚠️ Connection Failed</h3>
@@ -244,7 +244,7 @@ async function updateRequestsBadgeCount(userProfile) {
       btn.innerHTML = count > 0 ? `Requests <span class="badge" style="background:var(--duo-blue); color:white; padding:2px 6px; border-radius:10px; font-size:10px; margin-left:4px;">${count}</span>` : 'Requests';
     }
   } catch (err) {
-    console.error('Error fetching request badge count:', err);
+    error('Error fetching request badge count:', err);
   }
 }
 
@@ -468,7 +468,7 @@ async function loadComments(postId, listContainer) {
       </div>
     `).join('');
   } catch (err) {
-    console.error('Error loading comments:', err);
+    error('Error loading comments:', err);
   }
 }
 

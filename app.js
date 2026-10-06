@@ -11,6 +11,7 @@ import { renderSocial } from './modules/social_v2.js'; // inder branch: Social T
 import { renderLearn } from './modules/learn.js';   // inder branch: Learn Tab
 import { supabase } from './modules/supabase.js';
 import { renderAuthScreen } from './modules/auth.js';
+import { error, warn } from './modules/logger.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.addEventListener('click', () => {
       if (!notificationRequested) {
         notificationRequested = true;
-        requestNotificationPermission().catch(e => console.warn('Notification request error:', e));
+        requestNotificationPermission().catch(e => warn('Notification request error:', e));
       }
     }, { once: true });
 
@@ -42,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
           openRanksModal();
         }
       } catch (err) {
-        console.error('Rank modal error:', err);
+        error('Rank modal error:', err);
       }
     });
 
@@ -84,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (views[viewName]) {
           views[viewName].classList.remove('hidden');
         } else {
-          console.warn('Unknown view:', viewName);
+          warn('Unknown view:', viewName);
           return;
         }
 
@@ -144,7 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sessionStorage.setItem('tempo_current_view', viewName);
       } catch (e) {
-        console.error('Navigation error:', e);
+        error('Navigation error:', e);
         showToast('Navigation error occurred', 'error');
       }
     }
@@ -170,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
       try {
         updateHeaderPills();
       } catch (e) {
-        console.error('Header update error:', e);
+        error('Header update error:', e);
       }
     };
     window.addEventListener('tempo_profile_changed', triggerUpdate);
@@ -203,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
       } catch (e) {
-        console.error('Header pill update error:', e);
+        error('Header pill update error:', e);
       }
     }
 
@@ -216,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
           timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         }
       } catch (e) {
-        console.error('Time update error:', e);
+        error('Time update error:', e);
       }
     }
     
@@ -247,7 +248,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   } catch (e) {
-    console.error('Critical initialization error:', e);
+    error('Critical initialization error:', e);
     showToast('Failed to initialize app. Please refresh.', 'error');
   }
 });

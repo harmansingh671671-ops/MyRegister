@@ -1,2 +1,11 @@
-export const SUPABASE_URL = "https://evpvlbqhdpldabjbrkly.supabase.co";
-export const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2cHZsYnFoZHBsZGFiamJya2x5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MTA2MDgsImV4cCI6MjA5ODM4NjYwOH0.de6MEhL4s9pW_xDg5cKiavVv-BFaBZcv6539w6cNgHk";
+// Configuration should be loaded from environment variables
+// For security, never hardcode credentials in source code
+// Use environment variables or a secure configuration service
+
+export const SUPABASE_URL = import.meta.env?.VITE_SUPABASE_URL || process.env.SUPABASE_URL || "";
+export const SUPABASE_ANON_KEY = import.meta.env?.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || "";
+
+// Validate that required configuration is present
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error("Supabase configuration missing. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY environment variables.");
+}

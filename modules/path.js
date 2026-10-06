@@ -1,9 +1,11 @@
 // Modules/path.js
+import { sanitizeHTML, safeInnerHTML } from './security.js';
 import { getDay, getProfile, getYetToCreditDiamonds } from './storage.js';
 import { openDayModal } from './dayModal.js';
 import { showPrompt } from './notifications.js';
 import { renderMascotWidget } from './mascot.js';
 import { RANKS } from './ranks.js';
+import { sanitizeHTML, safeInnerHTML } from './security.js';
 
 export function renderPath(container) {
   const profile = getProfile();

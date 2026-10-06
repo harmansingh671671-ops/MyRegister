@@ -197,7 +197,7 @@ export function getMascotReaction(event) {
       message
     };
   } catch (e) {
-    console.error('[Mascot] getMascotReaction error:', e);
+    error('[Mascot] getMascotReaction error:', e);
     return null;
   }
 }
@@ -285,7 +285,7 @@ export function renderMascotWidget(container, forceState = null) {
       </div>
     `;
   } catch (e) {
-    console.error('[Mascot] renderMascotWidget error:', e);
+    error('[Mascot] renderMascotWidget error:', e);
   }
 }
 

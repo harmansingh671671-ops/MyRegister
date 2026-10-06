@@ -2,6 +2,7 @@
 // Core data persistence layer with validation and error handling
 
 import { addXp } from './gamification.js';
+import { error, warn } from './logger.js';
 
 const PROFILE_KEY = 'tempo_user_profile';
 const DAY_LOGS_KEY = 'tempo_day_logs';
@@ -56,7 +57,20 @@ const DEFAULT_PROFILE = {
 // Validate and sanitize data before storage
 function sanitizeString(str) {
   if (typeof str !== 'string') return '';
-  return str.trim().substring(0, 500);
+  // Remove any HTML tags or special characters that could be dangerous
+  return str.trim().replace(/<[^>]*>/g, '').substring(0, 500);
+}
+
+// Additional sanitization for user-generated content
+function sanitizeUserContent(str) {
+  if (typeof str !== 'string') return '';
+  // Remove script tags, event handlers, and other dangerous patterns
+  return str.trim()
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .substring(0, 500);
 }
 
 function validateProfile(profile) {
@@ -79,9 +93,16 @@ function validateProfile(profile) {
   validated.streakFreezeActive = Boolean(profile.streakFreezeActive);
   validated.username = sanitizeString(profile.username || '');
   
-  // Validate arrays and objects
-  validated.milestonesClaimed = Array.isArray(profile.milestonesClaimed) ? profile.milestonesClaimed : [];
-  validated.goals = Array.isArray(profile.goals) ? profile.goals.filter(g => typeof g === 'object') : [];
+  // Validate arrays and objects with deep sanitization
+  validated.milestonesClaimed = Array.isArray(profile.milestonesClaimed) 
+    ? profile.milestonesClaimed.map(m => sanitizeString(m)) 
+    : [];
+  validated.goals = Array.isArray(profile.goals) 
+    ? profile.goals.filter(g => typeof g === 'object').map(g => ({
+        ...g,
+        text: sanitizeUserContent(g.text || '')
+      }))
+    : [];
   validated.weekNames = (typeof profile.weekNames === 'object' && profile.weekNames !== null) ? profile.weekNames : {};
   validated.unlockedThemes = Array.isArray(profile.unlockedThemes) ? profile.unlockedThemes : ['default'];
   validated.equippedTheme = ['default', 'cyberpunk', 'forest', 'sakura', 'dark', 'ocean'].includes(profile.equippedTheme) ? profile.equippedTheme : 'default';
@@ -89,21 +110,43 @@ function validateProfile(profile) {
   validated.leagueTier = ['Bronze', 'Silver', 'Gold', 'Diamond'].includes(profile.leagueTier) ? profile.leagueTier : 'Bronze';
   
   // Customizations and additional arrays
-  validated.unlockedBadges = Array.isArray(profile.unlockedBadges) ? profile.unlockedBadges : [];
+  validated.unlockedBadges = Array.isArray(profile.unlockedBadges) 
+    ? profile.unlockedBadges.map(b => sanitizeString(b))
+    : [];
   validated.equippedBadge = profile.equippedBadge ? sanitizeString(profile.equippedBadge) : null;
   validated.maxDailyXP = Math.max(0, Math.floor(profile.maxDailyXP || 0));
   
-  validated.unlockedMascots = Array.isArray(profile.unlockedMascots) ? profile.unlockedMascots : ['owl'];
-  validated.equippedMascot = ['owl', 'bear', 'cat'].includes(profile.equippedMascot) ? profile.equippedMascot : 'owl';
+  validated.unlockedMascots = Array.isArray(profile.unlockedMascots) 
+    ? profile.unlockedMascots.map(m => sanitizeString(m))
+    : ['owl'];
+  validated.equippedMascot = ['owl', 'bear', 'cat'].includes(profile.equippedMascot) 
+    ? sanitizeString(profile.equippedMascot) 
+    : 'owl';
   
-  validated.unlockedOutfits = Array.isArray(profile.unlockedOutfits) ? profile.unlockedOutfits : ['none'];
-  validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor', 'ninja', 'cowboy', 'wizard', 'detective', 'chef', 'superhero'].includes(profile.equippedOutfit) ? profile.equippedOutfit : 'none';
+  validated.unlockedOutfits = Array.isArray(profile.unlockedOutfits) 
+    ? profile.unlockedOutfits.map(o => sanitizeString(o))
+    : ['none'];
+  validated.equippedOutfit = ['none', 'suit', 'astronaut', 'visor', 'ninja', 'cowboy', 'wizard', 'detective', 'chef', 'superhero'].includes(profile.equippedOutfit) 
+    ? sanitizeString(profile.equippedOutfit) 
+    : 'none';
   
-  validated.unlockedSounds = Array.isArray(profile.unlockedSounds) ? profile.unlockedSounds : ['default'];
-  validated.equippedSound = ['default', 'scifi', 'zen', 'retro'].includes(profile.equippedSound) ? profile.equippedSound : 'default';
+  validated.unlockedSounds = Array.isArray(profile.unlockedSounds) 
+    ? profile.unlockedSounds.map(s => sanitizeString(s))
+    : ['default'];
+  validated.equippedSound = ['default', 'scifi', 'zen', 'retro'].includes(profile.equippedSound) 
+    ? sanitizeString(profile.equippedSound) 
+    : 'default';
   
-  validated.weeklyLeaderboard = Array.isArray(profile.weeklyLeaderboard) ? profile.weeklyLeaderboard : [];
-  validated.violationLog = Array.isArray(profile.violationLog) ? profile.violationLog : [];
+  validated.weeklyLeaderboard = Array.isArray(profile.weeklyLeaderboard) 
+    ? profile.weeklyLeaderboard.map(item => ({
+        name: sanitizeString(item.name || ''),
+        xp: Math.max(0, Math.floor(item.xp || 0)),
+        isUser: Boolean(item.isUser)
+      }))
+    : [];
+  validated.violationLog = Array.isArray(profile.violationLog) 
+    ? profile.violationLog.map(v => sanitizeString(v))
+    : [];
   
   // Preserve dates
   validated.lastPlanDate = sanitizeString(profile.lastPlanDate || '');
@@ -121,13 +164,13 @@ export function requestPersistentStorage() {
       if (!persisted) {
         navigator.storage.persist().then((granted) => {
           if (granted) {
-            console.log('Storage persistence granted.');
+            info('Storage persistence granted.');
           } else {
-            console.log('Storage persistence denied.');
+            info('Storage persistence denied.');
           }
-        }).catch(err => console.error('Error requesting persistence:', err));
+        }).catch(err => error('Error requesting persistence:', err));
       }
-    }).catch(err => console.error('Error checking persistence:', err));
+    }).catch(err => error('Error checking persistence:', err));
   }
 }
 
@@ -144,7 +187,7 @@ export function initStorage() {
     }
     requestPersistentStorage();
   } catch (e) {
-    console.error('Error initializing storage:', e);
+    error('Error initializing storage:', e);
   }
 }
 
@@ -157,7 +200,7 @@ export function getProfile() {
     const prof = JSON.parse(stored);
     return validateProfile(prof);
   } catch (e) {
-    console.error('Error reading profile:', e);
+    error('Error reading profile:', e);
     return { ...DEFAULT_PROFILE };
   }
 }
@@ -167,25 +210,27 @@ async function syncProfileToSupabase(profile) {
     const { supabase } = await import('./supabase.js');
     const { data: { session } } = await supabase.auth.getSession();
     if (session && session.user) {
+      // Sanitize all data before sending to Supabase
       const { error } = await supabase
         .from('profiles')
         .update({
-          display_name: profile.name || 'New Player',
-          avatar_mascot: profile.equippedMascot || 'owl',
-          equipped_badge: profile.equippedBadge || null,
-          streak: profile.streak || 0,
-          highest_streak: profile.highestStreak || 0,
-          integrity_score: profile.integrityScore || 100,
-          xp: profile.xp || 0,
-          military_rank: profile.militaryRank || 'Civilian'
+          display_name: sanitizeString(profile.name || 'New Player'),
+          avatar_mascot: sanitizeString(profile.equippedMascot || 'owl'),
+          equipped_badge: profile.equippedBadge ? sanitizeString(profile.equippedBadge) : null,
+          streak: Math.max(0, Math.floor(profile.streak || 0)),
+          highest_streak: Math.max(0, Math.floor(profile.highestStreak || 0)),
+          integrity_score: Math.max(0, Math.min(100, Math.floor(profile.integrityScore || 100))),
+          xp: Math.max(0, Math.floor(profile.xp || 0)),
+          military_rank: sanitizeString(profile.militaryRank || 'Civilian'),
+          username: sanitizeString(profile.username || '')
         })
         .eq('id', session.user.id);
       if (error) {
-        console.error('[Storage] Supabase sync error:', error);
+        error('[Storage] Supabase sync error:', error);
       }
     }
   } catch (err) {
-    console.error('[Storage] Error during Supabase profile sync:', err);
+    error('[Storage] Error during Supabase profile sync:', err);
   }
 }
 
@@ -196,7 +241,7 @@ export function saveProfile(profile) {
     window.dispatchEvent(new CustomEvent('tempo_profile_changed', { detail: validated }));
     syncProfileToSupabase(validated);
   } catch (e) {
-    console.error('Error saving profile:', e);
+    error('Error saving profile:', e);
   }
 }
 
@@ -209,7 +254,7 @@ export function getCustomReasons() {
     const reasons = JSON.parse(stored);
     return Array.isArray(reasons) ? reasons : [...DEFAULT_MISS_REASONS];
   } catch (e) {
-    console.error('Error reading reasons:', e);
+    error('Error reading reasons:', e);
     return [...DEFAULT_MISS_REASONS];
   }
 }
@@ -221,7 +266,7 @@ export function saveCustomReasons(reasons) {
     localStorage.setItem(REASONS_KEY, JSON.stringify(sanitized));
     return true;
   } catch (e) {
-    console.error('Error saving reasons:', e);
+    error('Error saving reasons:', e);
     return false;
   }
 }
@@ -236,7 +281,7 @@ export function addCustomReason(reason) {
     }
     return false;
   } catch (e) {
-    console.error('Error adding reason:', e);
+    error('Error adding reason:', e);
     return false;
   }
 }
@@ -247,7 +292,7 @@ export function removeCustomReason(reason) {
     const filtered = reasons.filter(r => r !== reason);
     saveCustomReasons(filtered);
   } catch (e) {
-    console.error('Error removing reason:', e);
+    error('Error removing reason:', e);
   }
 }
 
@@ -279,7 +324,7 @@ function mapSlotsToBlocks(slots) {
     });
     return blocks;
   } catch (e) {
-    console.error('Error mapping slots to blocks:', e);
+    error('Error mapping slots to blocks:', e);
     return [];
   }
 }
@@ -289,7 +334,7 @@ export function getDay(dateStr) {
   try {
     // Validate date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      console.warn('Invalid date format:', dateStr);
+      warn('Invalid date format:', dateStr);
       return { date: dateStr, blocks: [], slots: [], isCommitted: false, isReviewed: false };
     }
     
@@ -337,7 +382,7 @@ export function getDay(dateStr) {
 
     return log;
   } catch (e) {
-    console.error('Error reading day:', e);
+    error('Error reading day:', e);
     return {
       date: dateStr,
       blocks: [],
@@ -352,7 +397,7 @@ export function saveDay(dateStr, dayLog) {
   initStorage();
   try {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      console.warn('Invalid date format:', dateStr);
+      warn('Invalid date format:', dateStr);
       return;
     }
     
@@ -368,7 +413,7 @@ export function saveDay(dateStr, dayLog) {
         try {
           addXp(10);
         } catch (e) {
-          console.error('Failed to add XP:', e);
+          error('Failed to add XP:', e);
         }
       }
     }
@@ -379,7 +424,7 @@ export function saveDay(dateStr, dayLog) {
     calculateIntegrityHealth();
     window.dispatchEvent(new CustomEvent('tempo_logs_changed', { detail: { date: dateStr, log: dayLog } }));
   } catch (e) {
-    console.error('Error saving day log:', e);
+    error('Error saving day log:', e);
   }
 }
 
@@ -417,7 +462,7 @@ export function calculateIntegrityHealth() {
     }
     return score;
   } catch (e) {
-    console.error('Error calculating integrity health:', e);
+    error('Error calculating integrity health:', e);
     return 100;
   }
 }
@@ -428,7 +473,7 @@ export function getAllDays() {
     const logs = JSON.parse(localStorage.getItem(DAY_LOGS_KEY));
     return (typeof logs === 'object' && logs !== null) ? logs : {};
   } catch (e) {
-    console.error('Error reading all days:', e);
+    error('Error reading all days:', e);
     return {};
   }
 }
@@ -442,7 +487,7 @@ export function exportJSON() {
     };
     return JSON.stringify(data, null, 2);
   } catch (e) {
-    console.error('Error exporting data:', e);
+    error('Error exporting data:', e);
     return '';
   }
 }
@@ -462,7 +507,7 @@ export function importJSON(jsonStr) {
     window.location.reload();
     return true;
   } catch (e) {
-    console.error('Import failed:', e);
+    error('Import failed:', e);
     return false;
   }
 }
@@ -483,7 +528,7 @@ export function getYetToCreditDiamonds() {
     }
     return yetToCredit;
   } catch (e) {
-    console.error('Error calculating yet-to-credit diamonds:', e);
+    error('Error calculating yet-to-credit diamonds:', e);
     return 0;
   }
 }
@@ -594,7 +639,7 @@ export function autoLockPastDays() {
       saveProfile(profile);
     }
   } catch (e) {
-    console.error('Error auto locking past days:', e);
+    error('Error auto locking past days:', e);
   }
 }
 
@@ -604,7 +649,7 @@ export function getSocialData() {
     if (!raw) return { friends: [], posts: [], notifications: [] };
     return JSON.parse(raw);
   } catch (e) {
-    console.error('[Storage] Error reading social data:', e);
+    error('[Storage] Error reading social data:', e);
     return { friends: [], posts: [], notifications: [] };
   }
 }
@@ -613,7 +658,7 @@ export function saveSocialData(data) {
   try {
     localStorage.setItem('tempo_social_feed', JSON.stringify(data));
   } catch (e) {
-    console.error('[Storage] Error saving social data:', e);
+    error('[Storage] Error saving social data:', e);
   }
 }
 

@@ -294,7 +294,7 @@ export function triggerEODRecap(dateStr, closeParentModalFn) {
     navigator.clipboard.writeText(shareText).then(() => {
       showToast("Copied recap text to clipboard! 🎉", "success");
     }).catch(err => {
-      console.error('Clipboard copy failed:', err);
+      error('Clipboard copy failed:', err);
     });
   };
 }
