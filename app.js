@@ -1,4 +1,4 @@
-// App.js - Main application entry point with error handling
+// App.js - Main application entry point with modern UI
 import { initStorage, getProfile, calculateIntegrityHealth, saveProfile, getYetToCreditDiamonds, autoLockPastDays } from './modules/storage.js';
 import { renderOnboarding } from './modules/onboarding.js';
 import { renderPath } from './modules/path.js';
@@ -7,11 +7,12 @@ import { renderShop, syncAppTheme } from './modules/shop.js';
 import { renderSettings } from './modules/settings.js';
 import { requestNotificationPermission, showToast } from './modules/notifications.js';
 import { calculateMilitaryRank, openRanksModal, RANKS } from './modules/ranks.js';
-import { renderSocial } from './modules/social_v2.js'; // inder branch: Social Tab
-import { renderLearn } from './modules/learn.js';   // inder branch: Learn Tab
+import { renderSocial } from './modules/social_v2.js';
+import { renderLearn } from './modules/learn.js';
 import { supabase } from './modules/supabase.js';
 import { renderAuthScreen } from './modules/auth.js';
-import { error, warn } from './modules/logger.js';
+import { error, warn, info } from './modules/logger.js';
+import { sanitizeHTML } from './modules/security.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   try {
@@ -24,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 2. Sync active theme on boot
     const bootProfile = getProfile();
     syncAppTheme(bootProfile.equippedTheme);
+
+    // Initialize UI Components
+    initUIComponents();
 
     // 3. Request notification permission on first interaction
     let notificationRequested = false;
@@ -54,12 +58,16 @@ document.addEventListener('DOMContentLoaded', () => {
       stats: document.getElementById('view-stats'),
       shop: document.getElementById('view-shop'),
       settings: document.getElementById('view-settings'),
-      social: document.getElementById('view-social'),   // inder branch: Social Tab
-      learn:  document.getElementById('view-learn'),      // inder branch: Learn Tab
+      social: document.getElementById('view-social'),
+      learn:  document.getElementById('view-learn'),
       auth:   document.getElementById('view-auth')
     };
 
-    const navLinks = document.querySelectorAll('.nav-link');
+    const menuItems = document.querySelectorAll('.menu-item');
+    const sidebar = document.getElementById('sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
 
     let currentSession = null;
 
@@ -78,85 +86,78 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(views).forEach(key => {
           if (views[key]) {
             views[key].classList.add('hidden');
+            views[key].classList.remove('active');
           }
         });
 
         // Show selected view
         if (views[viewName]) {
           views[viewName].classList.remove('hidden');
+          views[viewName].classList.add('active');
         } else {
           warn('Unknown view:', viewName);
           return;
         }
 
-        // Update nav active state
-        navLinks.forEach(link => {
-          if (link.getAttribute('data-view') === viewName) {
-            link.classList.add('active');
+        // Update menu active state
+        menuItems.forEach(item => {
+          if (item.getAttribute('data-view') === viewName) {
+            item.classList.add('active');
           } else {
-            link.classList.remove('active');
+            item.classList.remove('active');
           }
         });
 
-        // Toggle bottom nav & header visibility
-        const bottomNav = document.querySelector('.mobile-bottom-nav');
-        const mobileHeader = document.querySelector('.mobile-header');
+        // Close mobile sidebar on navigation
+        if (window.innerWidth <= 1024) {
+          sidebar.classList.remove('open');
+        }
+
+        // Update header pills
+        updateHeaderPills();
         
-        if (viewName === 'onboarding' || viewName === 'auth') {
-          if (bottomNav) bottomNav.classList.add('hidden');
-          if (mobileHeader && viewName === 'auth') mobileHeader.classList.add('hidden');
-        } else {
-          if (bottomNav) bottomNav.classList.remove('hidden');
-          if (mobileHeader) mobileHeader.classList.remove('hidden');
-        }
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        // Render the view
-        switch (viewName) {
-          case 'onboarding':
-            renderOnboarding(views.onboarding, () => {
-              navigateTo('path');
-            });
-            break;
-          case 'auth':
-            renderAuthScreen(views.auth, () => {
-              const prof = getProfile();
-              navigateTo(prof.hasCompletedOnboarding ? (sessionStorage.getItem('tempo_current_view') || 'path') : 'onboarding');
-            });
-            break;
-          case 'path':
-            renderPath(views.path);
-            break;
-          case 'stats':
-            renderAnalytics(views.stats);
-            break;
-          case 'shop':
-            renderShop(views.shop);
-            break;
-          case 'settings':
-            renderSettings(views.settings);
-            break;
-          case 'social': // inder branch: Social Tab
-            renderSocial(views.social);
-            break;
-          case 'learn': // inder branch: Learn Tab
-            renderLearn(views.learn);
-            break;
-        }
-
-        sessionStorage.setItem('tempo_current_view', viewName);
       } catch (e) {
         error('Navigation error:', e);
-        showToast('Navigation error occurred', 'error');
+        showToast(sanitizeHTML('Navigation error occurred'), 'error');
       }
     }
 
-    // Bind navigation links
-    navLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const viewName = link.getAttribute('data-view');
-        navigateTo(viewName);
+    // Bind navigation from menu items
+    menuItems.forEach(item => {
+      const link = item.querySelector('.menu-link');
+      if (link) {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const viewName = item.getAttribute('data-view');
+          navigateTo(viewName);
+        });
+      }
+    });
+
+    // Mobile menu toggle
+    if (mobileMenuToggle) {
+      mobileMenuToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('open');
       });
+    }
+
+    // Sidebar toggle (collapse/expand)
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+      });
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+      if (window.innerWidth <= 1024) {
+        if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+          sidebar.classList.remove('open');
+        }
+      }
     });
 
     // Global navigation event
@@ -192,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const activeRankName = profile.militaryRank || 'Civilian';
         const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
-        const badgeEmoji = rankObj ? rankObj.badge : '🍃';
+        const badgeEmoji = rankObj ? rankObj.badge : '\ud83c\udf43';
 
         levels.forEach(el => el.textContent = activeRankName);
 
@@ -208,21 +209,17 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     }
 
-    // Update simulator time
-    function updateSimulatorTime() {
-      try {
-        const timeEl = document.getElementById('simulator-time');
-        if (timeEl) {
-          const now = new Date();
-          timeEl.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        }
-      } catch (e) {
-        error('Time update error:', e);
-      }
-    }
-    
-    updateSimulatorTime();
-    setInterval(updateSimulatorTime, 1000);
+    // Initialize theme
+    initTheme();
+
+    // Initialize notifications
+    initNotifications();
+
+    // Initialize search
+    initSearch();
+
+    // Initialize keyboard shortcuts
+    initKeyboardShortcuts();
 
     // Initialize session checking and auth listener
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -247,8 +244,121 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentView) navigateTo(currentView);
       }
     });
+
+    // Update simulator time (removed - not needed in new UI)
+
+    sessionStorage.setItem('tempo_current_view', 'path');
+
   } catch (e) {
     error('Critical initialization error:', e);
-    showToast('Failed to initialize app. Please refresh.', 'error');
+    showToast(sanitizeHTML('Failed to initialize app. Please refresh.'), 'error');
   }
 });
+
+// UI Components Initialization
+function initUIComponents() {
+  // Add smooth animations to all elements
+  const elements = document.querySelectorAll('.card, .stat-card, .btn, .task-item');
+  elements.forEach((el, index) => {
+    el.classList.add('animate-fade-in-up');
+    el.style.animationDelay = `${index * 0.1}s`;
+  });
+}
+
+// Theme Management
+function initTheme() {
+  const themeToggle = document.getElementById('theme-toggle');
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  
+  // Apply saved theme
+  document.documentElement.setAttribute('data-theme', savedTheme);
+  
+  if (themeToggle) {
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Update icon
+      const icon = themeToggle.querySelector('i');
+      if (icon) {
+        icon.className = newTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+      }
+      
+      showToast(sanitizeHTML(`Switched to ${newTheme} mode`), 'info');
+    });
+    
+    // Update initial icon
+    const icon = themeToggle.querySelector('i');
+    if (icon) {
+      icon.className = savedTheme === 'dark' ? 'fas fa-moon' : 'fas fa-sun';
+    }
+  }
+}
+
+// Notification System
+function initNotifications() {
+  const notificationBtn = document.getElementById('notification-btn');
+  const notificationBadge = document.querySelector('.notification-badge');
+  
+  if (notificationBtn && notificationBadge) {
+    // Simulate notifications
+    let notificationCount = 3;
+    
+    notificationBtn.addEventListener('click', () => {
+      showToast(sanitizeHTML('Notifications center coming soon!'), 'info');
+    });
+  }
+}
+
+// Search Functionality
+function initSearch() {
+  const searchInput = document.getElementById('search-input');
+  
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      // Implement search functionality
+      info('Search query:', query);
+    });
+    
+    // Keyboard shortcut for search
+    searchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.target.value = '';
+        e.target.blur();
+      }
+    });
+  }
+}
+
+// Keyboard Shortcuts
+function initKeyboardShortcuts() {
+  document.addEventListener('keydown', (e) => {
+    // Ctrl/Cmd + K for search
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      const searchInput = document.getElementById('search-input');
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }
+    
+    // Escape to close modals
+    if (e.key === 'Escape') {
+      const activeModal = document.querySelector('.modal.active');
+      if (activeModal) {
+        const closeBtn = activeModal.querySelector('.modal-close');
+        if (closeBtn) {
+          closeBtn.click();
+        }
+      }
+    }
+  });
+}
+
+
+// Export for use in other modules
+window.navigateTo = navigateTo;

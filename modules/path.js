@@ -1,22 +1,21 @@
-// Modules/path.js
-import { sanitizeHTML, safeInnerHTML } from './security.js';
-import { getDay, getProfile, getYetToCreditDiamonds } from './storage.js';
+// Modules/path.js - Modern UI Version
+import { getDay, getProfile, getYetToCreditDiamonds, saveDay, saveProfile } from './storage.js';
 import { openDayModal } from './dayModal.js';
-import { showPrompt } from './notifications.js';
+import { showToast } from './notifications.js';
 import { renderMascotWidget } from './mascot.js';
 import { RANKS } from './ranks.js';
-import { sanitizeHTML, safeInnerHTML } from './security.js';
+import { sanitizeHTML } from './security.js';
 
 export function renderPath(container) {
   const profile = getProfile();
   const today = new Date();
   const activeRankName = profile.militaryRank || "Civilian";
   const rankObj = RANKS.find(r => r.name === activeRankName) || RANKS[0];
-  const badgeEmoji = rankObj ? rankObj.badge : "🍃";
-
+  const badgeEmoji = rankObj ? rankObj.badge : "\ud83c\udf43";
 
   const todayStr = today.toISOString().split('T')[0];
-  const tomVal = new Date(); tomVal.setDate(today.getDate() + 1);
+  const tomVal = new Date(); 
+  tomVal.setDate(today.getDate() + 1);
   const tomorrowStr = tomVal.toISOString().split('T')[0];
 
   // Calculate Today's completion
@@ -39,7 +38,7 @@ export function renderPath(container) {
   const totalWeeks = Math.max(3, currentWeekNum + 1); // Render at least 3 weeks
   
   const sections = [];
-  const themes = ["red", "green", "blue", "gold", "orange"];
+  const themes = ["theme-red", "theme-green", "theme-blue", "theme-gold", "theme-orange"];
   
   for (let w = 1; w <= totalWeeks; w++) {
     const weekDates = [];
@@ -65,451 +64,201 @@ export function renderPath(container) {
     });
   }
 
-  // Render Layout: Sticky top stats bar, Sticky active unit banner, and Winding Sections
+  // Modern UI Container
   container.innerHTML = `
-    <!-- Top Stats Row (Exact Duolingo Replica) -->
-    <div class="duo-top-bar">
-      <div class="duo-stat" title="Active Section">
-        <span class="stat-icon">🏁</span>
-        <span class="stat-text text-secondary" id="header-section-num">1</span>
-      </div>
-      <div class="duo-stat text-xp" title="Military Rank">
-        <span class="stat-icon">${badgeEmoji}</span>
-        <span class="stat-text header-level-val">${activeRankName}</span>
-      </div>
-      <div class="duo-stat text-streak" title="Streak">
-        <span class="stat-icon">🔥</span>
-        <span class="stat-text header-streak-val">${profile.streak}</span>
-      </div>
-      <div class="duo-stat text-gem" title="Gems">
-        <span class="stat-icon">💎</span>
-        <span class="stat-text header-diamond-val">${profile.diamonds}+${getYetToCreditDiamonds()}</span>
-      </div>
-      <div class="duo-stat text-heart" title="Integrity Health (Last 24 entries)">
-        <span class="stat-icon">💖</span>
-        <span class="stat-text">${profile.integrityScore}%</span>
-      </div>
-    </div>
-
-    <!-- SINGLE STICKY UNIT HEADER BANNER (Locks to top of map section) -->
-    <div class="duo-unit-banner sticky-unit-banner" id="sticky-unit-banner">
-      <div class="unit-banner-content">
-        <h3 class="unit-title-heading" id="sticky-unit-title" style="display:flex; align-items:center; gap:8px;">
-          <span id="sticky-unit-title-text">Week 1</span>
-          <span class="rename-pencil-icon" id="sticky-rename-btn" style="cursor:pointer; font-size:14px; opacity:0.8;" title="Rename Week">✏️</span>
-        </h3>
-      </div>
-      <button class="unit-guidebook-btn" id="sticky-guidebook-btn" title="Open Guidebook">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="6" y="3" width="14" height="18" rx="2"></rect>
-          <line x1="3" y1="7" x2="6" y2="7"></line>
-          <line x1="3" y1="12" x2="6" y2="12"></line>
-          <line x1="3" y1="17" x2="6" y2="17"></line>
-          <line x1="10" y1="8" x2="16" y2="8"></line>
-          <line x1="10" y1="12" x2="16" y2="12"></line>
-          <line x1="10" y1="16" x2="16" y2="16"></line>
-        </svg>
-      </button>
-    </div>
-
-
-
-    <!-- Mascot Coach Row -->
-    <div id="path-mascot-container" style="padding: 16px 16px 0 16px;"></div>
-
-    <!-- Scrollable Winding Path sections -->
-    <div class="path-sections-list">
-      ${sections.map((sec, idx) => `
-        <div class="week-section theme-${sec.theme}" data-week="${sec.num}" id="week-section-${sec.num}">
-          
-          <!-- Section Divider (Header/Footer transition matching 2nd photo) -->
-          ${idx > 0 ? `<div class="section-divider">${sec.name} <span class="rename-pencil-icon" data-week="${sec.num}" style="cursor:pointer; font-size:12px; margin-left:6px; opacity:0.8;" title="Rename Week">✏️</span></div>` : ''}
-
-          <!-- Winding nodes path trail -->
-          <div class="path-trail-container">
-            <svg class="path-line-svg section-svg-path" data-week="${sec.num}"></svg>
-            <div class="path-nodes-list section-nodes-trail" data-week="${sec.num}">
-              <!-- Nodes injected dynamically -->
+    <div class="path-container-modern">
+      <!-- Progress Overview -->
+      <div class="progress-overview glass-card animate-fade-in">
+        <div class="progress-header">
+          <h3 class="progress-title">
+            <i class="fas fa-chart-line"></i>
+            <span>Weekly Progress</span>
+          </h3>
+          <div class="progress-stats">
+            <div class="progress-stat">
+              <span class="stat-number">${todayProgress}%</span>
+              <span class="stat-label">Today</span>
+            </div>
+            <div class="progress-stat">
+              <span class="stat-number">${profile.streak}</span>
+              <span class="stat-label">Streak</span>
             </div>
           </div>
         </div>
-      `).join('')}
-
-      <!-- LOCKED SECTION AT END -->
-      <div class="duo-locked-section card-3d">
-        <div class="locked-section-badge">UP NEXT</div>
-        <h3>🔒 Week ${totalWeeks + 1}: Habit Mastery</h3>
-        <p class="hint">Master strict energy sequencing, deep flow entry states, and buffer time budgeting.</p>
-      </div>
-    </div>
-
-    <!-- Trophy Weekly Report Modal -->
-    <div id="trophy-modal" class="fullscreen-modal hidden">
-      <div class="modal-backdrop" id="trophy-backdrop"></div>
-      <div class="modal-card day-details-card card-3d animate-pop" id="trophy-modal-content">
-        <div class="modal-hero" style="background: linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%); color: white; padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-radius: 20px 20px 0 0; position: relative;">
-          <button class="btn-back" id="close-trophy-btn" aria-label="Go back" style="color: white; background: rgba(0,0,0,0.2); border: none; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="19" y1="12" x2="5" y2="12"></line>
-              <polyline points="12 19 5 12 12 5"></polyline>
-            </svg>
-          </button>
-          <div>
-            <span class="modal-date-title" id="trophy-modal-title" style="margin: 0; font-size: 16px; font-weight: 800; display: block; line-height: 1.2;">🏆 Weekly Summary</span>
-            <div style="font-size: 11px; opacity: 0.9; margin-top: 3px; font-weight: 600;">Your Weekly Progress Report</div>
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${todayProgress}%"></div>
           </div>
+          <span class="progress-percentage">${todayProgress}% Complete</span>
         </div>
-        
-        <div class="modal-body-scroll" id="trophy-modal-body">
-          <!-- Injected -->
-        </div>
+      </div>
+
+      <!-- Week Sections -->
+      <div class="week-sections" id="week-sections">
+        ${sections.map((section, idx) => {
+          const isCurrentWeek = section.num === currentWeekNum;
+          const weekProgress = calculateWeekProgress(section.dates);
+          
+          return `
+            <div class="week-section glass-card animate-fade-in stagger-${idx + 1}" data-week="${section.num}" data-theme="${section.theme}">
+              <div class="week-header">
+                <div class="week-info">
+                  <span class="week-number">Week ${section.num}</span>
+                  <h4 class="week-title">${sanitizeHTML(section.name)}</h4>
+                  <div class="week-progress">
+                    <div class="mini-progress-bar">
+                      <div class="mini-progress-fill" style="width: ${weekProgress}%"></div>
+                    </div>
+                    <span>${weekProgress}%</span>
+                  </div>
+                </div>
+                <div class="week-actions">
+                  <button class="week-action-btn rename-btn" data-week="${section.num}" title="Rename Week">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="week-days">
+                ${section.dates.map((dateStr, dayIdx) => {
+                  const dayLog = getDay(dateStr);
+                  const isToday = dateStr === todayStr;
+                  const isFuture = dateStr > todayStr;
+                  const isPast = dateStr < todayStr;
+                  const isCompleted = dayLog.isReviewed;
+                  const hasSchedule = dayLog.isCommitted;
+                  
+                  // Calculate day completion percentage
+                  const dayBlocks = dayLog.blocks.length;
+                  const dayCompleted = dayLog.blocks.filter(b => b.status === 'completed').length;
+                  const dayProgress = dayBlocks > 0 ? Math.round((dayCompleted / dayBlocks) * 100) : 0;
+                  
+                  return `
+                    <div class="day-card ${isToday ? 'today' : ''} ${isFuture ? 'future' : ''} ${isCompleted ? 'completed' : ''} ${hasSchedule ? 'scheduled' : ''}" 
+                         data-date="${dateStr}" 
+                         onclick="openDayModal('${dateStr}')">
+                      <div class="day-header">
+                        <span class="day-name">${getDayName(dateStr)}</span>
+                        <span class="day-date">${formatDate(dateStr)}</span>
+                      </div>
+                      <div class="day-status">
+                        ${isToday ? '<i class="fas fa-sun"></i>' : ''}
+                        ${isFuture ? '<i class="fas fa-lock"></i>' : ''}
+                        ${isCompleted ? '<i class="fas fa-check-circle"></i>' : ''}
+                        ${hasSchedule && !isCompleted ? '<i class="fas fa-clock"></i>' : ''}
+                        ${!hasSchedule && !isFuture ? '<i class="fas fa-plus"></i>' : ''}
+                      </div>
+                      <div class="day-progress">
+                        <div class="day-progress-bar">
+                          <div class="day-progress-fill" style="width: ${dayProgress}%"></div>
+                        </div>
+                        <span class="day-percentage">${dayProgress}%</span>
+                      </div>
+                      ${isToday && dayLog.slots && dayLog.slots.length > 0 ? `
+                        <div class="day-preview">
+                          ${dayLog.slots.slice(1, 4).map((slot, idx) => {
+                            if (slot.text && slot.text.trim()) {
+                              return `<span class="preview-task">${sanitizeHTML(slot.text.substring(0, 20))}</span>`;
+                            }
+                            return '';
+                          }).join('')}
+                        </div>
+                      ` : ''}
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="quick-actions animate-fade-in stagger-4">
+        <button class="quick-action-btn" onclick="openDayModal('${todayStr}')">
+          <i class="fas fa-calendar-day"></i>
+          <span>Today's Schedule</span>
+        </button>
+        <button class="quick-action-btn" onclick="openDayModal('${tomorrowStr}')">
+          <i class="fas fa-calendar-plus"></i>
+          <span>Plan Tomorrow</span>
+        </button>
+        <button class="quick-action-btn" onclick="showStats()">
+          <i class="fas fa-chart-bar"></i>
+          <span>View Stats</span>
+        </button>
       </div>
     </div>
   `;
 
-  // Render individual nodes for each week section
-  sections.forEach(sec => {
-    const listEl = container.querySelector(`.section-nodes-trail[data-week="${sec.num}"]`);
-    if (!listEl) return;
-
-    const nodeData = sec.dates.map((dateStr, index) => {
-      const dayLog = getDay(dateStr);
-      const isTomorrow = dateStr === tomorrowStr;
-      const isToday = dateStr === todayStr;
-      const isPast = dateStr < todayStr;
-      const isFuture = dateStr > tomorrowStr;
-
-      let nodeType = 'locked';
-      let icon = '🔒';
-      let tooltip = 'Locked';
-
-      if (isTomorrow) {
-        if (dayLog.isCommitted) {
-          nodeType = 'committed';
-          icon = '📝';
-          tooltip = 'Schedule Committed';
-        } else {
-          nodeType = 'plan';
-          icon = '✍️';
-          tooltip = 'Plan Tomorrow';
-        }
-      } else if (isToday) {
-        nodeType = 'active';
-        icon = '⭐';
-        tooltip = 'Active Today';
-      } else if (isPast) {
-        if (dayLog.isCommitted && dayLog.isReviewed) {
-          nodeType = 'reviewed';
-          icon = '👑';
-          tooltip = 'Reviewed';
-        } else if (dayLog.isCommitted && !dayLog.isReviewed) {
-          nodeType = 'pending-review';
-          icon = '❓';
-          tooltip = 'Pending Review';
-        } else {
-          nodeType = 'skipped';
-          icon = '💀';
-          tooltip = 'Day Skipped';
-        }
-      } else if (isFuture) {
-        nodeType = 'future';
-        const FUTURE_DAY_ICONS = {
-          0: "🛌", // Sunday
-          1: "💻", // Monday
-          2: "📚", // Tuesday
-          3: "🏃", // Wednesday
-          4: "⚡", // Thursday
-          5: "🎯", // Friday
-          6: "🧘"  // Saturday
-        };
-        const nodeDayOfWeek = new Date(dateStr + 'T00:00:00Z').getUTCDay();
-        icon = FUTURE_DAY_ICONS[nodeDayOfWeek] || "📅";
-        tooltip = 'Future Planning Locked';
-      }
-
-      const xOffset = Math.sin(index * 1.1) * 65;
-
-      return {
-        dateStr,
-        index,
-        nodeType,
-        icon,
-        tooltip,
-        xOffset,
-        isToday
-      };
-    });
-
-    let nodesHtml = nodeData.map(node => {
-      let displayLabel = node.dateStr;
-      const d = new Date(node.dateStr);
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      
-      if (node.dateStr === tomorrowStr) displayLabel = "Tomorrow";
-      else if (node.dateStr === todayStr) displayLabel = "Today";
-      else {
-        const yesterdayDate = new Date(); yesterdayDate.setDate(today.getDate() - 1);
-        const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
-        if (node.dateStr === yesterdayStr) {
-          displayLabel = "Yesterday";
-        } else {
-          displayLabel = `${dayNames[d.getDay()]}, ${monthNames[d.getMonth()]} ${d.getDate()}`;
-        }
-      }
-
-      const inlineStyle = node.isToday 
-        ? `background: conic-gradient(var(--theme-color) ${todayProgress}%, transparent ${todayProgress}%);`
-        : '';
-
-      return `
-        <div class="path-node-wrapper" style="transform: translateX(${node.xOffset}px);">
-          ${node.isToday ? `
-            <div class="today-progress-ring-container" style="width: 90px; height: 80px; ${inlineStyle}"></div>
-            <button class="day-node node-active" data-date="${node.dateStr}" title="${node.tooltip}">
-              <span class="node-icon">${node.icon}</span>
-            </button>
-          ` : `
-            <button class="day-node node-${node.nodeType}" data-date="${node.dateStr}" title="${node.tooltip}">
-              <span class="node-icon">${node.icon}</span>
-            </button>
-          `}
-        </div>
-      `;
-    }).join('');
-
-    // Append Trophy Node at the end of each section
-    const trophyOffset = Math.sin(sec.dates.length * 1.1) * 65;
-    const trophySideClass = trophyOffset < 0 ? 'side-right' : 'side-left';
-    nodesHtml += `
-      <div class="path-node-wrapper trophy-wrapper" style="transform: translateX(${trophyOffset}px);">
-        <button class="day-node node-trophy card-3d" data-week="${sec.num}" title="Week Review Trophy">
-          <span class="node-icon">🏆</span>
-        </button>
-        <div class="node-label ${trophySideClass}">
-          <span class="label-date">Week ${sec.num} Trophy</span>
-          <span class="label-status">Tap to unlock report</span>
-        </div>
-      </div>
-    `;
-
-    listEl.innerHTML = nodesHtml;
-  });
-
-  // Bind day clicks
-  container.querySelectorAll('.day-node:not(.node-trophy)').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const date = btn.getAttribute('data-date');
-      openDayModal(date);
-    });
-  });
-
-  // Bind Trophy clicks
-  const trophyModal = container.querySelector('#trophy-modal');
-  const trophyTitle = container.querySelector('#trophy-modal-title');
-  const trophyBody = container.querySelector('#trophy-modal-body');
-  
-  container.querySelectorAll('.node-trophy').forEach(btn => {
-    btn.addEventListener('click', () => {
+  // Add event listeners for week rename
+  document.querySelectorAll('.rename-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const weekNum = parseInt(btn.getAttribute('data-week'));
-      openTrophyModal(weekNum, trophyModal, trophyTitle, trophyBody);
-    });
-  });
-
-  container.querySelector('#close-trophy-btn').onclick = () => trophyModal.classList.add('hidden');
-  container.querySelector('#trophy-backdrop').onclick = () => trophyModal.classList.add('hidden');
-
-  // Render Mascot widget
-  const mascotBox = container.querySelector('#path-mascot-container');
-  if (mascotBox) {
-    let mood = 'normal';
-    const total = todayLog.blocks.length;
-    const completed = todayLog.blocks.filter(b => b.status === 'completed').length;
-    const rate = total > 0 ? (completed / total) * 100 : 0;
-    
-    if (todayLog.isReviewed) {
-      mood = rate >= 70 ? 'happy' : 'sad';
-    } else {
-      const yesterdayDate = new Date(); yesterdayDate.setDate(today.getDate() - 1);
-      const yesterdayStr = yesterdayDate.toISOString().split('T')[0];
-      const yesterdayLog = getDay(yesterdayStr);
-      if (yesterdayLog.isCommitted && !yesterdayLog.isReviewed) {
-        mood = 'sad';
-      }
-    }
-    renderMascotWidget(mascotBox, mood);
-  }
-
-
-
-  // --- STICKY UNIT HEADER SCROLL LISTENER ---
-  const viewport = document.querySelector('.view-viewport');
-  const stickyBanner = container.querySelector('#sticky-unit-banner');
-  const stickyTitleText = container.querySelector('#sticky-unit-title-text');
-  const stickyGuideBtn = container.querySelector('#sticky-guidebook-btn');
-  const stickyRenameBtn = container.querySelector('#sticky-rename-btn');
-
-  function updateStickyHeader(sec) {
-    if (!stickyBanner || !stickyTitleText) return;
-    stickyTitleText.textContent = sec.name;
-    stickyGuideBtn.setAttribute('data-week', sec.num);
-
-    let gradient = 'linear-gradient(135deg, var(--duo-red) 0%, var(--duo-orange) 100%)';
-    let themeColorBottom = 'var(--duo-red-bottom)';
-    if (sec.theme === 'green') {
-      gradient = 'linear-gradient(135deg, var(--duo-green) 0%, var(--duo-blue) 100%)';
-      themeColorBottom = 'var(--duo-green-bottom)';
-    } else if (sec.theme === 'blue') {
-      gradient = 'linear-gradient(135deg, var(--duo-blue) 0%, var(--duo-purple) 100%)';
-      themeColorBottom = 'var(--duo-blue-bottom)';
-    } else if (sec.theme === 'gold') {
-      gradient = 'linear-gradient(135deg, var(--duo-gold) 0%, var(--duo-orange) 100%)';
-      themeColorBottom = 'var(--duo-gold-bottom)';
-    } else if (sec.theme === 'orange') {
-      gradient = 'linear-gradient(135deg, var(--duo-orange) 0%, var(--duo-red) 100%)';
-      themeColorBottom = 'var(--duo-orange-bottom)';
-    }
-    
-    stickyBanner.style.background = gradient;
-    stickyBanner.style.boxShadow = `0 6px 0 ${themeColorBottom}`;
-
-    // Dynamically update the top stats bar active section number
-    const sectionNumEl = container.querySelector('#header-section-num');
-    if (sectionNumEl) {
-      sectionNumEl.textContent = sec.num;
-    }
-  }
-
-  // Bind Guidebook clicks on sticky header
-  stickyGuideBtn.onclick = () => {
-    window.dispatchEvent(new CustomEvent('tempo_navigate', { detail: 'stats' }));
-  };
-
-  // Bind Rename click on sticky banner
-  if (stickyRenameBtn) {
-    stickyRenameBtn.onclick = async (e) => {
-      e.stopPropagation();
-      const weekNum = stickyGuideBtn.getAttribute('data-week') || 1;
-      const currentName = profile.weekNames[weekNum] || `Week ${weekNum}`;
-      const newName = await showPrompt(`Rename Week ${weekNum}:`, currentName, "Rename Week");
-      if (newName !== null) {
-        const trimmed = newName.trim();
-        if (trimmed) {
-          if (!profile.weekNames) profile.weekNames = {};
-          profile.weekNames[weekNum] = trimmed;
+      const currentName = profile.weekNames && profile.weekNames[weekNum] || `Week ${weekNum}`;
+      
+      showPrompt(`Rename Week ${weekNum}`, currentName, (newName) => {
+        if (newName && newName.trim()) {
+          profile.weekNames = profile.weekNames || {};
+          profile.weekNames[weekNum] = newName.trim().substring(0, 30);
           saveProfile(profile);
           renderPath(container);
-        }
-      }
-    };
-  }
-
-  // Bind Rename clicks on inline dividers
-  container.querySelectorAll('.section-divider .rename-pencil-icon').forEach(btn => {
-    btn.onclick = async (e) => {
-      e.stopPropagation();
-      const weekNum = btn.getAttribute('data-week');
-      const currentName = profile.weekNames[weekNum] || `Week ${weekNum}`;
-      const newName = await showPrompt(`Rename Week ${weekNum}:`, currentName, "Rename Week");
-      if (newName !== null) {
-        const trimmed = newName.trim();
-        if (trimmed) {
-          if (!profile.weekNames) profile.weekNames = {};
-          profile.weekNames[weekNum] = trimmed;
-          saveProfile(profile);
-          renderPath(container);
-        }
-      }
-    };
-  });
-
-  if (viewport) {
-    viewport.addEventListener('scroll', () => {
-      const sectionsList = container.querySelectorAll('.week-section');
-      const viewportRect = viewport.getBoundingClientRect();
-      
-      // Calculate top bounds dynamically based on top bar + sticky banner height
-      const topBarHeight = 60;
-      const bannerHeight = stickyBanner ? stickyBanner.offsetHeight : 80;
-      const threshold = topBarHeight + bannerHeight;
-
-      let activeSec = sections[0];
-      
-      sectionsList.forEach((secEl, idx) => {
-        const rect = secEl.getBoundingClientRect();
-        const relativeTop = rect.top - viewportRect.top;
-        // Trigger switch when section top scrolls past the threshold
-        if (relativeTop <= threshold) {
-          activeSec = sections[idx];
         }
       });
-      
-      updateStickyHeader(activeSec);
     });
-  }
+  });
 
-  // Initial header sync
-  updateStickyHeader(sections[0]);
-
-  // Render SVG connecting roads for each week section
-  setTimeout(() => {
-    sections.forEach(sec => {
-      const svgEl = container.querySelector(`.section-svg-path[data-week="${sec.num}"]`);
-      const listEl = container.querySelector(`.section-nodes-trail[data-week="${sec.num}"]`);
-      if (svgEl && listEl) {
-        drawSectionRoad(listEl, svgEl, sec.theme);
-      }
+  // Add hover effects to day cards
+  document.querySelectorAll('.day-card').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      card.classList.add('hover');
     });
-
-    // Auto scroll to Today node
-    const activeNode = container.querySelector('.node-active');
-    if (activeNode) {
-      activeNode.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, 1200);
+    card.addEventListener('mouseleave', () => {
+      card.classList.remove('hover');
+    });
+  });
 }
 
-function drawSectionRoad(listEl, svg, themeColor) {
-  return;
+// Helper functions
+function calculateWeekProgress(dates) {
+  let totalBlocks = 0;
+  let completedBlocks = 0;
+  
+  dates.forEach(dateStr => {
+    const dayLog = getDay(dateStr);
+    totalBlocks += dayLog.blocks.length;
+    completedBlocks += dayLog.blocks.filter(b => b.status === 'completed').length;
+  });
+  
+  return totalBlocks > 0 ? Math.round((completedBlocks / totalBlocks) * 100) : 0;
 }
 
-function openTrophyModal(weekNum, modal, title, body) {
-  modal.classList.remove('hidden');
-  title.textContent = `🏆 Week ${weekNum} Summary Report`;
+function getDayName(dateStr) {
+  const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const date = new Date(dateStr);
+  return days[date.getDay()];
+}
 
-  if (weekNum === 1) {
-    body.innerHTML = `
-      <div style="background:var(--bg-dark); padding:12px; border-radius:12px; margin-bottom:12px;">
-        <span style="font-size:12px; color:var(--text-hint);">FOUNDATIONS PHASE</span>
-        <h4 style="margin:4px 0;">Routine Compliance: <strong>72%</strong></h4>
-      </div>
-      <p style="margin-bottom:10px;">You began your journey building foundation routines. Submitting entries honestly helped map out your initial focus benchmarks.</p>
-      <ul style="padding-left:20px; font-size:13px; display:flex; flex-direction:column; gap:6px;">
-        <li>💻 Work focus blocks logged: <strong>14 hours</strong></li>
-        <li>🛌 Sleep averages: <strong>7.2 hours/night</strong></li>
-        <li>💡 Coach Tip: Your morning focus remains high. Safeguard this slot.</li>
-      </ul>
-    `;
-  } else if (weekNum === 2) {
-    body.innerHTML = `
-      <div style="background:var(--bg-dark); padding:12px; border-radius:12px; margin-bottom:12px;">
-        <span style="font-size:12px; color:var(--text-hint);">ACCOUNTABILITY PHASE</span>
-        <h4 style="margin:4px 0;">Routine Compliance: <strong>85%</strong></h4>
-      </div>
-      <p style="margin-bottom:10px;">Excellent progress! By immediately adapting and logging entries honestly, you secured a higher efficiency score.</p>
-      <ul style="padding-left:20px; font-size:13px; display:flex; flex-direction:column; gap:6px;">
-        <li>📚 Study focus blocks logged: <strong>18 hours</strong></li>
-        <li>🏃 Workout slots completed: <strong>6 blocks</strong></li>
-        <li>💡 Coach Tip: Evening fatigue is under control. Keep logs honest.</li>
-      </ul>
-    `;
+function formatDate(dateStr) {
+  const date = new Date(dateStr);
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  if (dateStr === today.toISOString().split('T')[0]) {
+    return 'Today';
+  } else if (dateStr === tomorrow.toISOString().split('T')[0]) {
+    return 'Tomorrow';
   } else {
-    body.innerHTML = `
-      <div style="background:var(--bg-dark); padding:12px; border-radius:12px; margin-bottom:12px;">
-        <span style="font-size:12px; color:var(--text-hint);">FUTURE PHASE (LOCKED)</span>
-        <h4 style="margin:4px 0;">Status: <strong>Planned / Pending</strong></h4>
-      </div>
-      <p>This week is active or locked in the future. Complete your entries for this week to unlock the summary metrics!</p>
-    `;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   }
 }
+
+function showStats() {
+  const event = new CustomEvent('tempo_navigate', { detail: 'stats' });
+  window.dispatchEvent(event);
+}
+
+// Make functions available globally for onclick handlers
+window.openDayModal = openDayModal;
+window.showStats = showStats;
